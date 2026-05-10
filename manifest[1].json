@@ -1,0 +1,43 @@
+{
+  "name": "RodanteCheck",
+  "short_name": "RodanteCheck",
+  "description": "Sistema de inspeção de esteiras rodantes — ATVOS USL",
+  "start_url": "/rondantecheck/",
+  "display": "standalone",
+  "background_color": "#0F0D0A",
+  "theme_color": "#F47920",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova Inspeção",
+      "url": "/?page=inspecao",
+      "description": "Iniciar nova inspeção de campo"
+    },
+    {
+      "name": "Histórico",
+      "url": "/?page=historico",
+      "description": "Ver inspeções realizadas"
+    }
+  ],
+  "scope": "/rondantecheck/"
+}

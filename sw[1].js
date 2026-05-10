@@ -1,0 +1,72 @@
+// RodanteCheck Service Worker v3
+// Permite funcionar offline e instalar como app
+
+var CACHE = 'rodantecheck-v3';
+var ARQUIVOS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  'https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+];
+
+// Instalar — cachear arquivos essenciais
+self.addEventListener('install', function(e){
+  e.waitUntil(
+    caches.open(CACHE).then(function(cache){
+      return cache.addAll([
+        '/',
+        '/index.html',
+        '/manifest.json'
+      ]).catch(function(err){
+        console.log('Cache parcial:', err);
+      });
+    })
+  );
+  self.skipWaiting();
+});
+
+// Ativar — limpar caches antigos
+self.addEventListener('activate', function(e){
+  e.waitUntil(
+    caches.keys().then(function(keys){
+      return Promise.all(
+        keys.filter(function(k){ return k !== CACHE; })
+            .map(function(k){ return caches.delete(k); })
+      );
+    })
+  );
+  self.clients.claim();
+});
+
+// Fetch — servir do cache quando offline
+self.addEventListener('fetch', function(e){
+  // Não interceptar requisições do Supabase
+  if(e.request.url.includes('supabase.co')){
+    return;
+  }
+  
+  e.respondWith(
+    caches.match(e.request).then(function(cached){
+      if(cached) return cached;
+      
+      return fetch(e.request).then(function(response){
+        // Cachear apenas respostas válidas e do mesmo domínio
+        if(response && response.status === 200 && response.type === 'basic'){
+          var clone = response.clone();
+          caches.open(CACHE).then(function(cache){
+            cache.put(e.request, clone);
+          });
+        }
+        return response;
+      }).catch(function(){
+        // Offline — retornar index.html para navegação
+        if(e.request.destination === 'document'){
+          return caches.match('/index.html');
+        }
+      });
+    })
+  );
+});
