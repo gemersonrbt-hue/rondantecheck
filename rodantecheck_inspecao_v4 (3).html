@@ -1,0 +1,1720 @@
+<!--
+SQL PARA RODAR NO SUPABASE (uma única vez):
+
+CREATE TABLE IF NOT EXISTS inspecoes_campo (
+  id bigint generated always as identity primary key,
+  frota text,
+  inspetor text,
+  modelo text,
+  horimetro numeric,
+  data_inspecao date,
+  frente text,
+  girada text,
+  conclusao text,
+  observacoes text,
+  medicoes_json text,
+  fotos_json text,
+  whatsapp text,
+  email text,
+  status_geral text,
+  criados_em timestamptz default now()
+);
+ALTER TABLE inspecoes_campo ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Público lê" ON inspecoes_campo FOR SELECT USING (true);
+CREATE POLICY "Público cria" ON inspecoes_campo FOR INSERT WITH CHECK (true);
+-->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#F47920">
+<title>RodanteCheck — Inspeção</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{--o:#F47920;--od:#C85E00;--ol:#FFF3E0;--k:#1A3A4A;--w:#FAFAF7;--w2:#F2F0EA;--g:#2E7D32;--gl:#E8F5E9;--r:#C62828;--rl:#FFEBEE;--a:#E65100;--al:#FFF8E1;--t2:#5A554A;--t3:#9A9488;--bd:#E0DDD5;}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--w2);color:var(--k);min-height:100vh;padding-bottom:80px;}
+.topbar{background:var(--k);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.4);}
+.logo{width:34px;height:34px;background:var(--o);border-radius:8px;font-weight:900;font-size:16px;color:var(--k);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.topbar-title{font-size:16px;font-weight:700;color:var(--w);flex:1;}
+.topbar-sub{font-size:11px;color:var(--t3);}
+#net-dot{width:8px;height:8px;border-radius:50%;background:#4CAF50;flex-shrink:0;}
+.page{display:none;padding:14px;}
+.page.ativa{display:block;}
+.botnav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bd);display:flex;z-index:98;box-shadow:0 -2px 10px rgba(0,0,0,.08);}
+.botnav-btn{flex:1;padding:10px 4px 14px;border:none;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font-family:inherit;}
+.botnav-btn i{font-size:22px;line-height:1;}
+.botnav-btn span{font-size:10px;font-weight:600;color:var(--t3);}
+.botnav-btn.ativo span{color:var(--o);}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.card-ttl{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-ttl::before{content:'';width:3px;height:16px;background:var(--o);border-radius:2px;flex-shrink:0;}
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;padding:13px 14px;border:1.5px solid var(--bd);border-radius:9px;font-size:16px;font-family:inherit;color:var(--k);background:#fff;-webkit-appearance:none;transition:border-color .2s;}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--o);background:#FFFDF9;}
+.field input[type=number]{-moz-appearance:textfield;}
+.field input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+.field textarea{resize:none;min-height:60px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity .15s;min-height:52px;}
+.btn:active{opacity:.85;}
+.btn-primary{background:var(--o);color:#fff;}
+.btn-dark{background:var(--k);color:#fff;}
+.btn-outline{background:transparent;color:var(--k);border:1.5px solid var(--bd);}
+.btn-wa{background:#25D366;color:#fff;}
+.btn-mail{background:#EA4335;color:#fff;}
+.btn-sm{padding:9px 14px;font-size:13px;min-height:38px;border-radius:8px;width:auto;}
+.btn-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.comp{background:#fff;border-radius:12px;margin-bottom:10px;overflow:visible;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.comp-hdr{padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;min-height:56px;background:#fff;border-radius:12px;position:relative;z-index:2;}
+.comp-num{width:30px;height:30px;min-width:30px;min-height:30px;border-radius:50%;background:var(--o);color:var(--k);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;align-self:center;}
+.comp-nome{font-size:14px;font-weight:700;flex:1;}
+.comp-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:10px;flex-shrink:0;}
+.bv{background:#F0EEE8;color:var(--t3);}
+.bok{background:var(--gl);color:var(--g);}
+.bat{background:var(--al);color:var(--a);}
+.bcr{background:var(--rl);color:var(--r);}
+.comp-seta{font-size:11px;color:var(--t3);flex-shrink:0;transition:transform .2s;}
+.comp.aberto .comp-seta{transform:rotate(180deg);}
+.comp.aberto .comp-hdr{border-radius:12px 12px 0 0;}
+.comp-body{display:none;padding:14px;border-top:1px solid #F2F0EA;background:#fff;border-radius:0 0 12px 12px;position:relative;z-index:1;}
+.comp.aberto .comp-body{display:block;}
+.lado-ttl{font-size:11px;font-weight:700;color:var(--k);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 10px;padding:7px 10px;display:block;width:100%;border-radius:6px;}
+.lado-le{background:#E3F2FD;color:#1565C0;border-left:3px solid #1565C0;}
+.lado-ld{background:#FFF8E1;color:#E65100;border-left:3px solid #E65100;}
+.med-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;}
+.med-tag{font-size:10px;font-weight:700;padding:4px 8px;border-radius:7px;flex-shrink:0;min-width:44px;text-align:center;}
+.tus{background:#E3F2FD;color:#0D47A1;}.tco{background:#E8F5E9;color:#1B5E20;}.tmp{background:#F3E5F5;color:#4A148C;}.ttr{background:#FFF8E1;color:#E65100;}
+.med-inp{flex:1;padding:11px 8px;border:2px solid #D0CCC5;border-radius:9px;font-size:20px;font-weight:700;text-align:center;font-family:inherit;-webkit-appearance:none;-moz-appearance:textfield;min-height:50px;cursor:text;pointer-events:all;position:relative;z-index:10;-webkit-user-select:text;user-select:text;background:#FEFEFE;}
+.med-inp:focus{outline:none;border-color:var(--o);background:#FFFDF9;}
+.med-inp::-webkit-inner-spin-button{-webkit-appearance:none;}
+.med-inp::placeholder{color:#C0BCBA;font-weight:400;font-size:15px;letter-spacing:0;}
+.med-inp::-moz-placeholder{color:#CCCCCC;font-weight:400;}
+.med-pct{font-size:13px;font-weight:800;min-width:44px;text-align:right;font-family:monospace;}
+.pok{color:var(--g);}.pat{color:var(--a);}.pcr{color:var(--r);}
+.rot-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.rot-item{background:#F7F6F3;border-radius:9px;padding:10px;}
+.rot-lbl{font-size:10px;font-weight:700;color:var(--t2);margin-bottom:8px;}
+.conc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+.conc-btn{padding:13px 8px;border:2px solid var(--bd);border-radius:9px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;background:#fff;color:var(--t2);text-align:center;transition:all .15s;}
+.conc-btn.sel{border-color:var(--o);background:var(--ol);color:var(--od);}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.kpi{background:#fff;border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.kpi-n{font-size:28px;font-weight:800;line-height:1;}
+.kpi-l{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;margin-top:3px;}
+.insp-item{background:#fff;border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.insp-ico{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.insp-info{flex:1;min-width:0;}
+.insp-frota{font-size:15px;font-weight:700;}
+.insp-meta{font-size:12px;color:var(--t3);margin-top:2px;}
+.insp-status{font-size:12px;font-weight:700;margin-top:4px;}
+.insp-btns{display:flex;flex-direction:column;gap:5px;align-items:flex-end;}
+.sucesso{text-align:center;padding:24px 16px;}
+.sucesso-ico{font-size:60px;margin-bottom:12px;}
+.sucesso-ttl{font-size:22px;font-weight:800;margin-bottom:8px;}
+.sucesso-sub{font-size:14px;color:var(--t2);margin-bottom:20px;line-height:1.6;}
+.alert-box{border-radius:10px;padding:12px 14px;margin-bottom:12px;text-align:left;}
+.alert-ttl{font-size:12px;font-weight:800;margin-bottom:8px;}
+.alert-row{font-size:12px;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.08);}
+.alert-row:last-child{border-bottom:none;}
+.fixo{position:fixed;bottom:72px;left:0;right:0;padding:12px 14px;background:#fff;border-top:1px solid var(--bd);z-index:97;box-shadow:0 -3px 12px rgba(0,0,0,.08);}
+.vazio{text-align:center;color:var(--t3);padding:40px 20px;font-size:14px;}
+.sep{height:10px;}
+
+/* ── FOTOS ── */
+.foto-area{margin-top:10px;}
+.foto-label{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;display:block;}
+.foto-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:2px dashed var(--bd);border-radius:10px;background:#FEFEFE;color:var(--t2);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .2s;}
+.foto-btn:active{background:var(--ol);border-color:var(--o);color:var(--od);}
+.fotos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;}
+.foto-thumb{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:#F0EEE8;}
+.foto-thumb img{width:100%;height:100%;object-fit:cover;}
+.foto-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(198,40,40,.85);color:#fff;border:none;border-radius:50%;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.foto-count{font-size:11px;color:var(--t3);margin-top:6px;text-align:center;}
+/* SYNC STATUS */
+.sync-row{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;margin-bottom:10px;font-size:13px;font-weight:600;}
+.sync-ok{background:var(--gl);color:var(--g);}
+.sync-offline{background:var(--al);color:var(--a);}
+.sync-err{background:var(--rl);color:var(--r);}
+
+/* ── TELA DE LOGIN ── */
+.login-screen{position:fixed;inset:0;background:var(--k);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-logo{width:80px;height:80px;background:var(--o);border-radius:20px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:40px;color:var(--k);margin-bottom:24px;}
+.login-title{font-size:28px;font-weight:800;color:var(--w);margin-bottom:4px;text-align:center;}
+.login-sub{font-size:13px;color:var(--t3);margin-bottom:32px;text-align:center;}
+.login-field{width:100%;margin-bottom:14px;}
+.login-field label{display:block;font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;}
+.login-field input{width:100%;padding:16px;border:1.5px solid rgba(255,255,255,.1);border-radius:10px;font-size:18px;font-family:inherit;color:var(--w);background:rgba(255,255,255,.07);text-align:center;letter-spacing:.1em;-webkit-appearance:none;}
+.login-field input:focus{outline:none;border-color:var(--o);background:rgba(244,121,32,.08);}
+.login-field input::placeholder{color:rgba(255,255,255,.2);letter-spacing:.05em;}
+.login-btn{width:100%;padding:16px;background:var(--o);color:var(--k);border:none;border-radius:10px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin-top:8px;}
+.login-btn:active{opacity:.85;}
+.login-err{color:#FF6B6B;font-size:13px;text-align:center;margin-top:10px;min-height:20px;}
+.login-version{font-size:10px;color:rgba(255,255,255,.15);margin-top:32px;}
+
+/* BADGE DE USINA */
+.usina-badge{background:rgba(244,121,32,.15);border:1px solid rgba(244,121,32,.3);border-radius:8px;padding:6px 12px;font-size:11px;color:var(--o);font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+.usina-badge-nome{flex:1;}
+.usina-sair{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;font-family:inherit;text-decoration:underline;}
+
+/* ── PAINEL ADMIN ── */
+.admin-page{display:none;padding:14px;}
+.admin-page.ativa{display:block;}
+.admin-card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.admin-ttl{font-size:18px;font-weight:800;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.usina-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #F2F0EA;}
+.usina-row:last-child{border-bottom:none;}
+.usina-status{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.usina-ok{background:#4CAF50;}
+.usina-vencida{background:#EF5350;}
+.usina-info{flex:1;}
+.usina-nome-admin{font-size:14px;font-weight:700;}
+.usina-meta-admin{font-size:11px;color:var(--t3);margin-top:2px;}
+.usina-acoes{display:flex;gap:6px;}
+.tag-plano{font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--gl);color:var(--g);}
+.tag-admin{background:#E3F2FD;color:#0D47A1;}
+.form-admin{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-admin .field-full{grid-column:1/-1;}
+
+/* ── LINHA DO TEMPO PÓS-INSPEÇÃO ── */
+.timeline-wrap{margin:14px 0;padding:14px;background:#fff;border-radius:10px;border:1px solid var(--bd);}
+.timeline-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.timeline-titulo::before{content:'';width:10px;height:2px;background:var(--o);}
+.timeline-barra-wrap{position:relative;height:18px;border-radius:9px;overflow:hidden;background:#F0EEE8;margin-bottom:8px;}
+.timeline-seg{position:absolute;top:0;height:100%;}
+.timeline-seg-v1{left:0;background:linear-gradient(90deg,#43A047,#66BB6A);}
+.timeline-seg-giro{background:linear-gradient(90deg,#FFA726,#FFB74D);}
+.timeline-seg-v2{background:linear-gradient(90deg,#EF5350,#E53935);}
+.timeline-marcador{position:absolute;top:-2px;width:4px;height:22px;border-radius:2px;z-index:2;}
+.timeline-atual{background:var(--k);box-shadow:0 0 0 2px white,0 0 0 4px var(--k);}
+.timeline-giro-m{background:var(--a);}
+.timeline-troca-m{background:var(--r);}
+.timeline-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:10px;}
+.timeline-proj{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px;}
+.timeline-proj-item{background:#F5F3EE;border-radius:6px;padding:8px;text-align:center;}
+.timeline-proj-n{font-size:16px;font-weight:700;margin-bottom:2px;}
+.timeline-proj-l{font-size:10px;color:var(--t3);}
+.timeline-alerta{display:flex;align-items:center;gap:8px;background:var(--rl);border-radius:6px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--r);font-weight:600;}
+.timeline-ok{background:var(--gl);color:var(--g);}
+
+
+/* Azul petróleo variáveis extras */
+:root{--az:#1565C0;--zl:#E3F2FD;--az2:#0D47A1;}
+.btn-edit{background:var(--zl);color:var(--az);}
+.btn-edit:active{background:#BBDEFB;}
+
+</style>
+</head>
+<body>
+<!-- TELA DE LOGIN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-logo">R</div>
+  <div class="login-title">RodanteCheck</div>
+  <div class="login-sub">Sistema de Inspeção de Esteiras Rodantes<br>Digite o código de acesso da sua usina</div>
+  <div class="login-field" style="max-width:360px;width:100%;">
+    <label>Código de acesso</label>
+    <input type="text" id="login-codigo" placeholder="CÓDIGO" autocomplete="off" 
+           style="text-transform:uppercase;" maxlength="20"
+           oninput="this.value=this.value.toUpperCase()">
+  </div>
+  <button class="login-btn" style="max-width:360px;" id="btn-login">Acessar →</button>
+  <div class="login-err" id="login-err"></div>
+  <div class="login-version">RodanteCheck v2.0 · Sistema Multi-Usina</div>
+</div>
+<div class="topbar" id="main-topbar" style="display:none;">
+  <div class="logo">R</div>
+  <div style="flex:1;"><div class="topbar-title">RodanteCheck</div><div class="topbar-sub">Inspeção de Esteiras Rodantes</div></div>
+  <div id="net-dot"></div>
+</div>
+
+<!-- HOME -->
+<div class="page ativa" id="pg-home">
+  <div id="usina-badge-home" class="usina-badge" style="display:none;">
+    <span>🏭</span>
+    <span class="usina-badge-nome" id="usina-nome-exibir">—</span>
+    <button class="usina-sair" onclick="fazerLogout()">Sair</button>
+  </div>
+  <div style="padding:8px 0 14px;">
+    <div style="font-size:22px;font-weight:800;" id="saudacao">Olá!</div>
+    <div style="font-size:13px;color:var(--t2);margin-top:3px;" id="data-hoje"></div>
+  </div>
+  <div style="margin:14px 0 6px;">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+      <span style="width:12px;height:2px;background:var(--o);display:inline-block;"></span>
+      Próximas máquinas — por urgência
+    </div>
+    <div id="proximas-maquinas" style="background:var(--w2);border-radius:10px;padding:10px;">
+      <div style="text-align:center;padding:1rem;color:var(--t3);font-size:13px;">Carregando...</div>
+    </div>
+  </div>
+
+  <div id="sync-status" class="sync-row sync-offline" style="display:none;">⏳ Conectando...</div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-n" style="color:var(--o);" id="kpi-total">0</div><div class="kpi-l">Inspeções</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:var(--r);" id="kpi-crit">0</div><div class="kpi-l">Com Críticos</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:var(--a);" id="kpi-atenc">0</div><div class="kpi-l">Com Atenção</div></div>
+  </div>
+  <button class="btn btn-primary" id="btn-nova" style="margin-bottom:10px;">➕&nbsp; Nova inspeção de campo</button>
+  <button class="btn btn-dark" id="btn-lista">📋&nbsp; Ver histórico de inspeções</button>
+  <div style="margin-top:20px;">
+    <div style="font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Últimas inspeções</div>
+    <div id="home-recentes"></div>
+  </div>
+</div>
+
+<!-- FORMULÁRIO -->
+<div class="page" id="pg-form">
+  <div class="card">
+    <div class="card-ttl">Dados da inspeção</div>
+    <div class="field"><label>Inspetor responsável *</label><input type="text" id="f-inspetor" placeholder="Seu nome completo"></div>
+    <div class="row2">
+      <div class="field"><label>Frota *</label><input type="text" id="f-frota" placeholder="Ex: 001"></div>
+      <div class="field"><label>Modelo *</label>
+        <select id="f-modelo">
+          <option value="CH570">JD CH570</option>
+          <option value="CH950">JD CH950</option>
+          <option value="Case">Case IH 9900</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Horímetro (h) *</label><input type="number" id="f-horim" placeholder="14500" inputmode="numeric"></div>
+      <div class="field"><label>Data</label><input type="date" id="f-data"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Frente / Talhão</label><input type="text" id="f-frente" placeholder="Ex: Frente A"></div>
+      <div class="field"><label>Corrente girada?</label>
+        <select id="f-girada"><option value="Sim">Sim</option><option value="Não">Não</option><option value="N/A">N/A (CH950)</option></select>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="btn-carregar-comps">🔧 Carregar componentes do modelo selecionado</button>
+  </div>
+  <div id="comps-container"></div>
+  <div class="card" id="card-conclusao" style="display:none;">
+    <div class="card-ttl">Conclusão e envio</div>
+    <div class="field"><label>Conclusão da inspeção</label>
+      <div class="conc-grid">
+        <button class="conc-btn" data-v="Aprovado — continuar operação">✅ Aprovado</button>
+        <button class="conc-btn" data-v="Atenção — monitorar">👁 Monitorar</button>
+        <button class="conc-btn" data-v="Programar troca preventiva">🔧 Troca preventiva</button>
+        <button class="conc-btn" data-v="Parar imediatamente">🛑 Parar agora</button>
+      </div>
+    </div>
+    <div class="field"><label>Observações</label><textarea id="f-obs" placeholder="Descreva o estado da esteira, componentes com problema, sujeira, tensão, etc..."></textarea></div>
+    <div class="foto-area">
+      <span class="foto-label">📷 Fotos da inspeção (opcional)</span>
+      <button type="button" class="foto-btn" onclick="abrirCamera()">
+        📷 Tirar foto &nbsp;·&nbsp; 🖼 Escolher da galeria
+      </button>
+      <input type="file" id="input-foto" accept="image/*" multiple capture="environment" style="display:none;" onchange="adicionarFotos(this)">
+      <div class="fotos-grid" id="fotos-grid"></div>
+      <div class="foto-count" id="foto-count"></div>
+    </div>
+    <div class="field"><label>WhatsApp para enviar</label><input type="tel" id="f-whats" placeholder="67991234567" inputmode="numeric"></div>
+    <div class="field"><label>E-mail para enviar</label><input type="email" id="f-email" placeholder="gestor@empresa.com.br"></div>
+  </div>
+  <div style="height:80px;"></div>
+</div>
+
+<!-- BARRA SALVAR -->
+<div class="fixo" id="barra-salvar" style="display:none;">
+  <button class="btn btn-primary" id="btn-salvar">💾&nbsp; Salvar e gerar relatório</button>
+</div>
+
+<!-- SUCESSO -->
+<div class="page" id="pg-sucesso">
+  <div class="sucesso">
+    <div class="sucesso-ico">✅</div>
+    <div class="sucesso-ttl">Inspeção salva!</div>
+    <div class="sucesso-sub" id="sucesso-info">Registrado com sucesso.</div>
+    <div id="fotos-sucesso"></div>
+    <div id="box-criticos"></div>
+    <div id="box-atencao"></div>
+    <div class="btn-row2">
+      <button class="btn btn-wa" id="btn-wa">📱 WhatsApp</button>
+      <button class="btn btn-mail" id="btn-mail">✉️ E-mail</button>
+    </div>
+    <button class="btn btn-dark" id="btn-pdf" style="margin-bottom:10px;">📄 Baixar PDF</button>
+    <button class="btn btn-outline" id="btn-nova2" style="margin-bottom:8px;">➕ Nova inspeção</button>
+    <button class="btn btn-outline" id="btn-home">🏠 Início</button>
+  </div>
+</div>
+
+<!-- LISTA -->
+<div class="page" id="pg-lista">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:20px;font-weight:800;">📋 Histórico</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="exportarDados()" style="background:var(--o);color:var(--k);border:none;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;">📤 JSON</button>
+      <button onclick="exportarExcel()" style="background:var(--g);color:#fff;border:none;border-radius:8px;padding:9px 13px;font-size:12px;font-weight:800;font-family:inherit;cursor:pointer;">📊 Excel</button>
+    </div>
+  </div>
+  <div id="export-instrucao" style="display:none;background:var(--gl);border:1px solid #C8E6C9;border-radius:10px;padding:12px;margin-bottom:14px;font-size:12px;color:var(--g);line-height:1.6;"></div>
+  <div id="lista-container"></div>
+</div>
+
+
+<!-- TELA ADMIN -->
+<div class="admin-page" id="pg-admin">
+  <div class="admin-ttl">⚙️ Painel Administrativo</div>
+
+  <!-- Stats rápidos -->
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-n" style="color:var(--o);" id="adm-total-usinas">0</div><div class="kpi-l">Usinas</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:var(--g);" id="adm-ativas">0</div><div class="kpi-l">Ativas</div></div>
+    <div class="kpi"><div class="kpi-n" style="color:var(--r);" id="adm-vencidas">0</div><div class="kpi-l">Vencidas</div></div>
+  </div>
+
+  <!-- Lista de usinas -->
+  <div class="admin-card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">🏭 Usinas cadastradas</div>
+    <div id="adm-lista-usinas"><div class="vazio">Carregando...</div></div>
+  </div>
+
+  <!-- Formulário nova usina -->
+  <div class="admin-card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:14px;">➕ Cadastrar nova usina</div>
+    <div class="form-admin">
+      <div class="field field-full"><label>Nome da usina *</label><input type="text" id="adm-nome" placeholder="Ex: Usina São João"></div>
+      <div class="field"><label>Código de acesso *</label><input type="text" id="adm-codigo" placeholder="USJOAO2026" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></div>
+      <div class="field"><label>Responsável</label><input type="text" id="adm-resp" placeholder="Nome do gestor"></div>
+      <div class="field"><label>E-mail</label><input type="email" id="adm-email" placeholder="gestor@usina.com.br"></div>
+      <div class="field"><label>Plano</label>
+        <select id="adm-plano">
+          <option value="safra">Safra (até 30 frotas)</option>
+          <option value="expansao">Expansão (ilimitado)</option>
+          <option value="admin">Admin (sistema)</option>
+        </select>
+      </div>
+      <div class="field"><label>Validade</label><input type="date" id="adm-validade"></div>
+      <div class="field"><label>Máx. frotas</label><input type="number" id="adm-maxfrotas" value="30" inputmode="numeric"></div>
+      <div class="field"><label>Status</label>
+        <select id="adm-ativo">
+          <option value="true">✅ Ativa</option>
+          <option value="false">❌ Suspensa</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="cadastrarUsina()" style="margin-top:10px;">💾 Cadastrar usina</button>
+    <div id="adm-msg" style="font-size:13px;margin-top:10px;text-align:center;"></div>
+  </div>
+
+  <!-- Total de inspeções -->
+  <div class="admin-card">
+    <div style="font-size:14px;font-weight:700;margin-bottom:12px;">📊 Inspeções no banco</div>
+    <div id="adm-inspecoes-stats"><div class="vazio">Carregando...</div></div>
+  </div>
+</div>
+<div class="botnav" id="main-botnav" style="display:none;">
+  <button class="botnav-btn ativo" id="nav-home"><i>🏠</i><span>Início</span></button>
+  <button class="botnav-btn" id="nav-insp"><i>🔍</i><span>Inspecionar</span></button>
+  <button class="botnav-btn" id="nav-hist"><i>📋</i><span>Histórico</span></button>
+  <button class="botnav-btn" id="nav-admin" style="display:none;"><i>⚙️</i><span>Admin</span></button>
+</div>
+
+<script>
+// ════════ PARÂMETROS ITM ════════
+const P={
+  CH570:[
+    {n:1,t:"Diâmetro da bucha",    rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:13.0, r1:4.5,  d:"d"}]},
+    {n:2,t:"Altura do elo",        rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:98.0, r1:86.5, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:98.0,r1:86.5,d:"d"}]},
+    {n:3,t:"Passo da corrente",    rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:685.2,r1:702.0,d:"a"}]},
+    {n:4,t:"Altura da sapata",     rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:34.5, r1:15.5, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:34.5,r1:15.5,d:"d"}]},
+    {n:5,t:"Roda motriz",          rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:187.0,r1:173.5,d:"d"}]},
+    {n:6,t:"Roda guia",            rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:23.0, r1:32.0, d:"a"}]},
+    {n:7,t:"Roletes superiores",   rot:1,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:38.31,r1:31.8, d:"d"},{g:"CO",c:"tco",lb:"Compasso", r0:150.0,r1:137.0,d:"d"}]},
+    {n:8,t:"Roletes inferiores",   rot:8,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:50.7, r1:42.2, d:"d"},{g:"CO",c:"tco",lb:"Compasso", r0:203.0,r1:179.6,d:"d"}]},
+  ],
+  CH950:[
+    {n:1,t:"Diâmetro da bucha",    rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:13.7, r1:4.1,  d:"d"}]},
+    {n:2,t:"Altura do elo",        rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:132.0,r1:120.4,d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:132.0,r1:120.4,d:"d"}]},
+    {n:3,t:"Passo da corrente",    rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:811.2,r1:821.2,d:"a"}]},
+    {n:4,t:"Altura da sapata",     rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:44.0, r1:26.7, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:44.0,r1:26.7,d:"d"}]},
+    {n:5,t:"Roda motriz",          rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:222.5,r1:203.0,d:"d"}]},
+    {n:6,t:"Roda guia",            rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:22.0, r1:30.0, d:"a"}]},
+    {n:7,t:"Roletes superiores",   rot:2,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:38.31,r1:31.8, d:"d"},{g:"CO",c:"tco",lb:"Compasso", r0:187.5,r1:155.1,d:"d"}]},
+    {n:8,t:"Roletes inferiores",   rot:7,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:56.3, r1:40.1, d:"d"},{g:"CO",c:"tco",lb:"Compasso", r0:227.0,r1:194.6,d:"d"}]},
+  ],
+  Case:[
+    {n:1,t:"Diâmetro da bucha",    rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:13.0, r1:4.5,  d:"d"}]},
+    {n:2,t:"Altura do elo",        rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:106.0,r1:98.0, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:106.0,r1:98.0,d:"d"}]},
+    {n:3,t:"Passo da corrente",    rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:684.2,r1:701.6,d:"a"}]},
+    {n:4,t:"Altura da sapata",     rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:34.5, r1:15.5, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:34.5,r1:15.5,d:"d"}]},
+    {n:5,t:"Roda motriz",          rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:184.4,r1:171.0,d:"d"}]},
+    {n:6,t:"Roda guia",            rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:23.0, r1:32.0, d:"a"}]},
+    {n:7,t:"Roletes superiores",   rot:1,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:38.31,r1:31.8, d:"d"},{g:"CO",c:"tco",lb:"Compasso", r0:150.0,r1:135.0,d:"d"}]},
+    {n:8,t:"Roletes inferiores",   rot:8,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:50.7, r1:42.2, d:"d"},{g:"CO",c:"tco",lb:"Compasso", r0:203.0,r1:184.0,d:"d"}]},
+  ]
+};
+
+// ════════ ESTADO ════════
+let atual = null;
+// ════════ SUPABASE ════════
+const SUPA_URL = 'https://penvwyshlwstohixntdz.supabase.co';
+const SUPA_KEY = 'sb_publishable_cTaxirewvma5891HksHNBQ_-T60dGiA';
+
+async function supaGet(tabela, query){
+  try{
+    var h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+    var r=await fetch(SUPA_URL+'/rest/v1/'+tabela+'?'+query,{headers:h});
+    var d=await r.json();
+    return r.ok?d:null;
+  }catch(e){return null;}
+}
+
+async function supaIns(tabela, dados){
+  try{
+    var h={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'return=representation'};
+    var r=await fetch(SUPA_URL+'/rest/v1/'+tabela,{method:'POST',headers:h,body:JSON.stringify(dados)});
+    var d=await r.json();
+    return r.ok?d:null;
+  }catch(e){return null;}
+}
+
+// ════════ ESTADO ════════
+let lista = JSON.parse(localStorage.getItem('rc3')||'[]');
+let fotosAtuais = []; // base64 das fotos da inspeção atual
+
+// ════════ HELPERS ════════
+function pct(val,r0,r1,d){return d==='d'?Math.max(0,Math.min(100,(r0-val)/(r0-r1)*100)):Math.max(0,Math.min(100,(val-r0)/(r1-r0)*100));}
+function irPg(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('ativa'));document.getElementById(id).classList.add('ativa');document.getElementById('barra-salvar').style.display=id==='pg-form'?'block':'none';window.scrollTo(0,0);}
+function navAct(id){document.querySelectorAll('.botnav-btn').forEach(b=>b.classList.remove('ativo'));document.getElementById(id).classList.add('ativo');}
+function salvarLista(){
+  localStorage.setItem('rc3',JSON.stringify(lista));
+}
+
+async function salvarSupabase(insp){
+  // Criar tabela de inspeções de campo se não existir (via insert com upsert)
+  var dados = {
+    usina_id: usinaAtual ? usinaAtual.id : 'DEMO',
+    usina_nome: usinaAtual ? usinaAtual.nome : 'Demo',
+    frota: insp.fr,
+    inspetor: insp.ins,
+    modelo: insp.modelo,
+    horimetro: insp.hor,
+    data_inspecao: insp.data,
+    frente: insp.frente||'',
+    girada: insp.girada,
+    conclusao: insp.conc||'',
+    observacoes: insp.obs||'',
+    medicoes_json: JSON.stringify(insp.meds),
+    fotos_json: JSON.stringify(insp.fotos||[]),
+    whatsapp: insp.wt||'',
+    email: insp.em||'',
+    criados_em: insp.ts,
+    status_geral: insp.meds.some(function(m){return m.st==='Crítico';})
+      ?'Crítico':insp.meds.some(function(m){return m.st==='Atenção';})
+      ?'Atenção':'Normal'
+  };
+  var resultado = await supaIns('inspecoes_campo', dados);
+  return resultado !== null;
+}
+
+// ════════ SISTEMA DE LOGIN ════════
+var usinaAtual = null;
+
+function iniciarLogin() {
+  var btn = document.getElementById('btn-login');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      entrar();
+    });
+  }
+  var inp = document.getElementById('login-codigo');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') entrar();
+    });
+  }
+}
+
+function entrar() {
+  var inp   = document.getElementById('login-codigo');
+  var errEl = document.getElementById('login-err');
+  var codigo = inp ? inp.value.trim().toUpperCase() : '';
+
+  if (!codigo) {
+    errEl.textContent = 'Digite o código de acesso.';
+    return;
+  }
+
+  // ADMIN MASTER — sempre funciona
+  if (codigo === 'RCADMIN2026') {
+    usinaAtual = {
+      id: 'ADMIN',
+      nome: 'Administrador RodanteCheck',
+      plano: 'admin',
+      ativo: true,
+      max_frotas: 999
+    };
+    localStorage.setItem('rc_usina', JSON.stringify(usinaAtual));
+    mostrarApp();
+    return;
+  }
+
+  // TESTE GRÁTIS — código TESTE2026, válido 7 dias a partir do primeiro uso
+  if (codigo === 'TESTE2026') {
+    var primeiroUso = localStorage.getItem('rc_trial_inicio');
+    if (!primeiroUso) {
+      primeiroUso = new Date().toISOString().split('T')[0];
+      localStorage.setItem('rc_trial_inicio', primeiroUso);
+    }
+    var inicio = new Date(primeiroUso);
+    var hoje2  = new Date();
+    var dias   = Math.floor((hoje2 - inicio) / (1000*60*60*24));
+    if (dias > 7) {
+      errEl.textContent = '⏰ Período de teste encerrado. Adquira um plano em rodantecheck.com.br';
+      return;
+    }
+    var restam = 7 - dias;
+    usinaAtual = {
+      id: 'TRIAL',
+      nome: 'Avaliação Gratuita ('+restam+' dia(s) restante(s))',
+      plano: 'trial',
+      ativo: true,
+      max_frotas: 5
+    };
+    localStorage.setItem('rc_usina', JSON.stringify(usinaAtual));
+    mostrarApp();
+    return;
+  }
+
+  // Buscar usina no banco
+  errEl.textContent = '⏳ Verificando...';
+  supaGet('rc_usinas', 'id=eq.' + encodeURIComponent(codigo) + '&limit=1')
+    .then(function(dados) {
+      if (!dados || dados.length === 0) {
+        errEl.textContent = '❌ Código inválido.';
+        return;
+      }
+      var u = dados[0];
+      if (!u.ativo) {
+        errEl.textContent = '🚫 Acesso suspenso.';
+        return;
+      }
+      var hoje = new Date().toISOString().split('T')[0];
+      if (u.validade && u.validade < hoje) {
+        errEl.textContent = '⏰ Assinatura vencida. Renove para continuar.';
+        return;
+      }
+      usinaAtual = {
+        id: u.id, nome: u.nome, plano: u.plano,
+        ativo: u.ativo, validade: u.validade,
+        max_frotas: u.max_frotas || 30
+      };
+      localStorage.setItem('rc_usina', JSON.stringify(usinaAtual));
+      mostrarApp();
+    })
+    .catch(function() {
+      errEl.textContent = '⚠️ Erro de conexão. Tente novamente.';
+    });
+}
+
+function mostrarApp() {
+  // Esconder login
+  var ls = document.getElementById('login-screen');
+  if (ls) ls.style.display = 'none';
+
+  // Mostrar interface
+  var tb = document.getElementById('main-topbar');
+  var bn = document.getElementById('main-botnav');
+  if (tb) tb.style.display = 'flex';
+  if (bn) bn.style.display = 'flex';
+
+  // Badge usina
+  var badge = document.getElementById('usina-badge-home');
+  var nomeEl = document.getElementById('usina-nome-exibir');
+  if (badge) badge.style.display = 'flex';
+  if (nomeEl && usinaAtual) nomeEl.textContent = usinaAtual.nome;
+
+  // Botão admin
+  var navAdmin = document.getElementById('nav-admin');
+  if (navAdmin) {
+    navAdmin.style.display = (usinaAtual && usinaAtual.plano === 'admin') ? 'flex' : 'none';
+  }
+
+  // Ir para home — mostrar pg-home
+  document.querySelectorAll('.page, .admin-page').forEach(function(p) {
+    p.classList.remove('ativa');
+  });
+  var home = document.getElementById('pg-home');
+  if (home) home.classList.add('ativa');
+
+  // Nav ativo
+  document.querySelectorAll('.botnav-btn').forEach(function(b) {
+    b.classList.remove('ativo');
+  });
+  var nh = document.getElementById('nav-home');
+  if (nh) nh.classList.add('ativo');
+
+  // Barra salvar escondida
+  var bs = document.getElementById('barra-salvar');
+  if (bs) bs.style.display = 'none';
+
+  // Dados
+  atualizarKPIs();
+  renderRecentes();
+  window.scrollTo(0, 0);
+
+  // Sync banco
+  var syncEl = document.getElementById('sync-status');
+  if (syncEl) syncEl.style.display = 'flex';
+  carregarSupabase();
+  if (usinaAtual && usinaAtual.plano === 'admin') carregarDadosAdmin();
+}
+
+// Manter compatibilidade com chamadas antigas
+function aplicarLogin() { mostrarApp(); }
+function fazerLogin()   { entrar(); }
+
+function fazerLogout() {
+  if (!confirm('Sair?')) return;
+  usinaAtual = null;
+  localStorage.removeItem('rc_usina');
+  localStorage.removeItem('rc3');
+  lista = [];
+  var ls = document.getElementById('login-screen');
+  if (ls) ls.style.display = 'flex';
+  var tb = document.getElementById('main-topbar');
+  var bn = document.getElementById('main-botnav');
+  if (tb) tb.style.display = 'none';
+  if (bn) bn.style.display = 'none';
+  var inp = document.getElementById('login-codigo');
+  if (inp) inp.value = '';
+  var errEl = document.getElementById('login-err');
+  if (errEl) errEl.textContent = '';
+}
+
+function verificarLoginSalvo() {
+  var salvo = localStorage.getItem('rc_usina');
+  if (!salvo) return false;
+  try {
+    usinaAtual = JSON.parse(salvo);
+    var hoje = new Date().toISOString().split('T')[0];
+    if (usinaAtual.validade && usinaAtual.validade < hoje && usinaAtual.plano !== 'admin') {
+      localStorage.removeItem('rc_usina');
+      usinaAtual = null;
+      return false;
+    }
+    mostrarApp();
+    return true;
+  } catch(e) {
+    localStorage.removeItem('rc_usina');
+    return false;
+  }
+}
+
+// ════════ ADMIN ════════
+async function carregarDadosAdmin(){
+  // Usinas
+  var usinas = await supaGet('rc_usinas', 'order=criado_em.desc');
+  if(usinas){
+    var hoje = new Date().toISOString().split('T')[0];
+    var ativas  = usinas.filter(function(u){return u.ativo && (!u.validade||u.validade>=hoje);});
+    var vencidas = usinas.filter(function(u){return !u.ativo || (u.validade&&u.validade<hoje);});
+    document.getElementById('adm-total-usinas').textContent = usinas.length;
+    document.getElementById('adm-ativas').textContent  = ativas.length;
+    document.getElementById('adm-vencidas').textContent = vencidas.length;
+    var listaEl = document.getElementById('adm-lista-usinas');
+    listaEl.innerHTML = usinas.map(function(u){
+      var ok = u.ativo && (!u.validade || u.validade >= hoje);
+      var valStr = u.validade ? new Date(u.validade+'T12:00:00').toLocaleDateString('pt-BR') : 'Sem limite';
+      return '<div class="usina-row">'
+        +'<div class="usina-status '+(ok?'usina-ok':'usina-vencida')+'"></div>'
+        +'<div class="usina-info">'
+          +'<div class="usina-nome-admin">'+u.nome+' <span class="tag-plano '+(u.plano==='admin'?'tag-admin':'')+'">'+u.plano+'</span></div>'
+          +'<div class="usina-meta-admin">Código: <b>'+u.id+'</b> · Validade: '+valStr+' · '+u.max_frotas+' frotas · Resp: '+(u.responsavel||'—')+'</div>'
+        +'</div>'
+        +'<div class="usina-acoes">'
+          +'<button class="btn btn-sm" style="'+(ok?'background:var(--rl);color:var(--r)':'background:var(--gl);color:var(--g)')+'" onclick="toggleUsina(\''+u.id+'\','+ok+')">'+(ok?'Suspender':'Ativar')+'</button>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }
+  // Stats inspeções
+  var insp = await supaGet('inspecoes_campo', 'select=usina_id,usina_nome&order=criados_em.desc&limit=500');
+  if(insp){
+    var por_usina = {};
+    insp.forEach(function(i){ var k=i.usina_nome||i.usina_id||'Sem usina'; por_usina[k]=(por_usina[k]||0)+1; });
+    var statsEl = document.getElementById('adm-inspecoes-stats');
+    statsEl.innerHTML = '<div style="font-size:13px;color:var(--t2);margin-bottom:8px;">Total: <b>'+insp.length+'</b> inspeções registradas</div>'
+      + Object.entries(por_usina).sort(function(a,b){return b[1]-a[1];}).map(function(kv){
+          return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #F2F0EA;font-size:13px;">'
+            +'<span>🏭 '+kv[0]+'</span><b>'+kv[1]+' inspeções</b></div>';
+        }).join('');
+  }
+}
+
+async function cadastrarUsina(){
+  var nome   = document.getElementById('adm-nome').value.trim();
+  var codigo = document.getElementById('adm-codigo').value.trim().toUpperCase();
+  var resp   = document.getElementById('adm-resp').value.trim();
+  var email  = document.getElementById('adm-email').value.trim();
+  var plano  = document.getElementById('adm-plano').value;
+  var valid  = document.getElementById('adm-validade').value;
+  var maxF   = parseInt(document.getElementById('adm-maxfrotas').value)||30;
+  var ativo  = document.getElementById('adm-ativo').value === 'true';
+  var msgEl  = document.getElementById('adm-msg');
+  if(!nome||!codigo){ msgEl.style.color='var(--r)'; msgEl.textContent='Preencha nome e código.'; return; }
+  msgEl.style.color='var(--a)'; msgEl.textContent='⏳ Salvando...';
+  var dados = {id:codigo, nome:nome, responsavel:resp, email:email, plano:plano, ativo:ativo, validade:valid||null, max_frotas:maxF};
+  var res = await supaIns('rc_usinas', dados);
+  if(res){
+    msgEl.style.color='var(--g)'; msgEl.textContent='✅ Usina cadastrada! Código: '+codigo;
+    ['adm-nome','adm-codigo','adm-resp','adm-email','adm-validade'].forEach(function(id){document.getElementById(id).value='';});
+    carregarDadosAdmin();
+  } else {
+    msgEl.style.color='var(--r)'; msgEl.textContent='❌ Erro ao salvar. Código pode já existir.';
+  }
+}
+
+async function toggleUsina(id, estaAtivo){
+  var novoStatus = !estaAtivo;
+  var acao = novoStatus ? 'ATIVAR' : 'SUSPENDER';
+  if(!confirm(acao+' a usina '+id+'?')) return;
+  var h={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+  await fetch(SUPA_URL+'/rest/v1/rc_usinas?id=eq.'+encodeURIComponent(id),{
+    method:'PATCH', headers:h, body:JSON.stringify({ativo:novoStatus})
+  });
+  carregarDadosAdmin();
+}
+
+async function carregarSupabase(){
+  mostrarSyncStatus('carregando');
+  // Filtrar por usina — admin vê tudo
+  var query = usinaAtual && usinaAtual.plano !== 'admin'
+    ? 'usina_id=eq.'+encodeURIComponent(usinaAtual.id)+'&order=criados_em.desc&limit=200'
+    : 'order=criados_em.desc&limit=200';
+  var dados = await supaGet('inspecoes_campo', query);
+  if(dados && dados.length>=0){
+    // Converter formato do Supabase para o formato local
+    var remota = dados.map(function(d){
+      return {
+        id: d.id||d.criados_em,
+        fr: d.frota,
+        ins: d.inspetor,
+        modelo: d.modelo,
+        hor: d.horimetro,
+        data: d.data_inspecao,
+        frente: d.frente,
+        girada: d.girada,
+        conc: d.conclusao,
+        obs: d.observacoes,
+        meds: JSON.parse(d.medicoes_json||'[]'),
+        fotos: JSON.parse(d.fotos_json||'[]'),
+        wt: d.whatsapp,
+        em: d.email,
+        ts: d.criados_em
+      };
+    });
+    lista = remota;
+    localStorage.setItem('rc3', JSON.stringify(lista));
+    mostrarSyncStatus('ok', lista.length);
+    atualizarKPIs();
+    renderRecentes();
+  } else {
+    mostrarSyncStatus('offline');
+  }
+}
+
+function mostrarSyncStatus(tipo, count){
+  var el = document.getElementById('sync-status');
+  if(!el) return;
+  if(tipo==='ok'){
+    el.className='sync-row sync-ok';
+    el.innerHTML='✅ '+count+' inspeção(ões) carregada(s) do banco central';
+  } else if(tipo==='carregando'){
+    el.className='sync-row sync-offline';
+    el.innerHTML='⏳ Carregando inspeções do banco...';
+  } else {
+    el.className='sync-row sync-offline';
+    el.innerHTML='📴 Sem conexão — exibindo inspeções salvas localmente';
+  }
+}
+
+// ════════ INIT ════════
+
+// ════════ PROJEÇÃO PÓS-INSPEÇÃO ════════
+var H_MES = 389;   // horas/mês safra
+var VIDA  = 3500;  // vida útil total
+var GIRO  = 1800;  // giro recomendado
+
+function calcProjecao(hor, girada) {
+  // Quantas horas faltam para o giro e para a troca
+  var hFaltaGiro  = girada ? null : Math.max(0, GIRO - hor);
+  var hFaltaTroca = Math.max(0, VIDA - hor);
+  
+  // Quantos meses
+  var mFaltaGiro  = hFaltaGiro  !== null ? (hFaltaGiro  / H_MES) : null;
+  var mFaltaTroca = hFaltaTroca / H_MES;
+  
+  // Data projetada (a partir de hoje)
+  var hoje = new Date();
+  var dataGiro  = mFaltaGiro !== null ? new Date(hoje.getTime() + mFaltaGiro  * 30 * 24*3600*1000) : null;
+  var dataTroca = new Date(hoje.getTime() + mFaltaTroca * 30 * 24*3600*1000);
+  
+  // % vida atual
+  var pctVida = Math.min(100, Math.round(hor / VIDA * 100));
+  var pctGiro = Math.min(100, Math.round(hor / GIRO * 100));
+  
+  return {
+    hor: hor,
+    girada: girada,
+    pctVida: pctVida,
+    hFaltaGiro: hFaltaGiro,
+    hFaltaTroca: hFaltaTroca,
+    mFaltaGiro: mFaltaGiro,
+    mFaltaTroca: mFaltaTroca,
+    dataGiro: dataGiro,
+    dataTroca: dataTroca
+  };
+}
+
+function fmtMes(dt) {
+  if (!dt) return '—';
+  return dt.toLocaleDateString('pt-BR', {month:'short', year:'numeric'});
+}
+
+function renderTimeline(insp) {
+  var hor    = insp.hor || 0;
+  var girada = insp.girada === 'Sim' || insp.girada === true || insp.girada === 'Girada';
+  var proj   = calcProjecao(hor, girada);
+  
+  // Calcular posições na barra (0 a 100%)
+  var posAtual = Math.min(100, hor / VIDA * 100);
+  var posGiro  = Math.min(100, GIRO / VIDA * 100); // ~51%
+  
+  // Segmentos de cor
+  // Fase 1 (0 → giro): verde
+  // Fase 2 (giro → fim): amarelo→vermelho
+  var largV1  = Math.min(posGiro, posAtual);
+  var largV2  = Math.max(0, posAtual - posGiro);
+  var largV2Total = 100 - posGiro;
+  
+  // Calcular cor da fase 2 baseada em quanto avançou
+  var pctF2 = largV2Total > 0 ? largV2 / largV2Total : 0;
+  
+  // Status e alertas
+  var pctVida = proj.pctVida;
+  var alertaHtml = '';
+  var projIcon = '🟢';
+  
+  if (pctVida >= 88) {
+    alertaHtml = '<div class="timeline-alerta">🔴 TROCA URGENTE — '+pctVida+'% da vida usada. Faltam apenas '+proj.hFaltaTroca.toFixed(0)+'h (~'+proj.mFaltaTroca.toFixed(1)+' meses)</div>';
+    projIcon = '🔴';
+  } else if (pctVida >= 70) {
+    alertaHtml = '<div class="timeline-alerta" style="background:var(--al);color:var(--a);">⚠️ ATENÇÃO — '+pctVida+'% da vida usada. Programar troca.</div>';
+    projIcon = '🟡';
+  } else if (!girada && proj.hFaltaGiro < 300) {
+    alertaHtml = '<div class="timeline-alerta" style="background:var(--al);color:var(--a);">⚠️ GIRO PRÓXIMO — Faltam '+proj.hFaltaGiro.toFixed(0)+'h para o giro recomendado</div>';
+    projIcon = '🟡';
+  }
+
+  var html = '<div class="timeline-wrap">';
+  html += '<div class="timeline-titulo">'+projIcon+' Linha do tempo · Projeção de vida</div>';
+  
+  // BARRA VISUAL
+  html += '<div class="timeline-barra-wrap">';
+  // Fase 1 — verde (0 até giro ou até posAtual se não girou)
+  if (!girada) {
+    // Ainda na fase 1 — barra toda verde até posAtual
+    html += '<div class="timeline-seg timeline-seg-v1" style="left:0;width:'+posAtual+'%;"></div>';
+  } else {
+    // Girada — verde até o giro, depois amarelo/vermelho
+    html += '<div class="timeline-seg timeline-seg-v1" style="left:0;width:'+posGiro+'%;"></div>';
+    // Fase 2 — gradiente amarelo→vermelho
+    var corF2Start = pctF2 < 0.5 ? '#FFA726' : '#FF7043';
+    var corF2End   = pctF2 < 0.5 ? '#FFB74D' : '#EF5350';
+    html += '<div class="timeline-seg" style="left:'+posGiro+'%;width:'+Math.max(0,posAtual-posGiro)+'%;background:linear-gradient(90deg,'+corF2Start+','+corF2End+');"></div>';
+  }
+  // Marcador posição atual
+  html += '<div class="timeline-marcador timeline-atual" style="left:'+Math.max(0,Math.min(97,posAtual-1))+'%;"></div>';
+  // Marcador giro
+  html += '<div class="timeline-marcador timeline-giro-m" style="left:'+Math.max(0,posGiro-0.5)+'%;opacity:.6;width:2px;"></div>';
+  html += '</div>';
+  
+  // LABELS
+  html += '<div class="timeline-labels">';
+  html += '<span>0h</span>';
+  html += '<span style="color:var(--a);">Giro 1.800h</span>';
+  html += '<span>Fim 3.500h</span>';
+  html += '</div>';
+  
+  // PROJEÇÕES
+  html += '<div class="timeline-proj">';
+  // Atual
+  html += '<div class="timeline-proj-item">';
+  html += '<div class="timeline-proj-n" style="color:'+( pctVida>=88?'var(--r)':pctVida>=70?'var(--a)':'var(--g)')+'">'+pctVida+'%</div>';
+  html += '<div class="timeline-proj-l">% vida usada</div>';
+  html += '</div>';
+  
+  // Giro ou situação
+  if (!girada) {
+    html += '<div class="timeline-proj-item">';
+    html += '<div class="timeline-proj-n" style="color:var(--a);">'+fmtMes(proj.dataGiro)+'</div>';
+    html += '<div class="timeline-proj-l">Giro previsto<br>('+proj.hFaltaGiro.toFixed(0)+'h / '+proj.mFaltaGiro.toFixed(1)+'m)</div>';
+    html += '</div>';
+  } else {
+    html += '<div class="timeline-proj-item" style="background:var(--gl);">';
+    html += '<div class="timeline-proj-n" style="color:var(--g);">✓</div>';
+    html += '<div class="timeline-proj-l">Giro realizado</div>';
+    html += '</div>';
+  }
+  
+  // Troca
+  html += '<div class="timeline-proj-item" style="background:'+(pctVida>=88?'var(--rl)':'#F5F3EE')+';">';
+  html += '<div class="timeline-proj-n" style="color:'+(pctVida>=88?'var(--r)':'var(--k)')+'">'+fmtMes(proj.dataTroca)+'</div>';
+  html += '<div class="timeline-proj-l">Troca prevista<br>('+proj.hFaltaTroca.toFixed(0)+'h / '+proj.mFaltaTroca.toFixed(1)+'m)</div>';
+  html += '</div>';
+  html += '</div>';
+  
+  // Alerta
+  if (alertaHtml) html += alertaHtml;
+  
+  html += '</div>'; // fim timeline-wrap
+  return html;
+}
+
+
+function exportarExcel(){
+  var dados=JSON.parse(localStorage.getItem('rc3')||'[]');
+  if(!dados.length){alert('Nenhuma inspeção para exportar.');return;}
+  
+  // Montar CSV que o Excel abre direto
+  var linhas=[['Data','Frota','Modelo','Inspetor','Frente','Horímetro','% Vida','Status','Girada','Giro Previsto','Troca Prevista','Observações']];
+  
+  dados.forEach(function(d){
+    var hor=d.hor||0;
+    var girada=d.girada==='Sim'||d.girada===true||d.girada==='Girada';
+    var proj=calcProjecao(hor,girada);
+    var crits=d.meds?d.meds.filter(function(m){return m.st==='Crítico';}).length:0;
+    var atc=d.meds?d.meds.filter(function(m){return m.st==='Atenção';}).length:0;
+    var status=crits>0?'Crítico':atc>0?'Atenção':'Normal';
+    linhas.push([
+      d.data||'',
+      d.fr||'',
+      d.modelo||'',
+      d.ins||'',
+      d.frente||'',
+      hor,
+      proj.pctVida+'%',
+      status,
+      girada?'Sim':'Não',
+      proj.dataGiro?fmtMes(proj.dataGiro):'Realizado',
+      fmtMes(proj.dataTroca),
+      d.obs||''
+    ]);
+  });
+  
+  var csv=linhas.map(function(row){
+    return row.map(function(cel){
+      var s=String(cel||'');
+      if(s.includes(',')||s.includes('"')||s.includes('\n'))s='"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(';');
+  }).join('\n');
+  
+  // BOM para Excel reconhecer UTF-8
+  var bom='\uFEFF';
+  var blob=new Blob([bom+csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url;
+  a.download='inspecoes_rodantecheck_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+window.onload=function(){
+  const h=new Date().getHours();
+  document.getElementById('saudacao').textContent=h<12?'Bom dia! ☀️':h<18?'Boa tarde! 🌤':'Boa noite! 🌙';
+  document.getElementById('data-hoje').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('f-data').value=new Date().toISOString().split('T')[0];
+  const ins=localStorage.getItem('rc_ins'); if(ins) document.getElementById('f-inspetor').value=ins;
+  const wt=localStorage.getItem('rc_wt');   if(wt)  document.getElementById('f-whats').value=wt;
+  const em=localStorage.getItem('rc_em');   if(em)  document.getElementById('f-email').value=em;
+  // Verificar login salvo — se não tiver, mostrar login
+  // Iniciar eventos do login
+  iniciarLogin();
+  // Verificar se já está logado
+  if (!verificarLoginSalvo()) {
+    var ls = document.getElementById('login-screen');
+    if (ls) ls.style.display = 'flex';
+  }
+  // Rede
+  const dot=document.getElementById('net-dot');
+  const upd=()=>dot.style.background=navigator.onLine?'#4CAF50':'#FF8F00';
+  upd(); window.addEventListener('online',upd); window.addEventListener('offline',upd);
+
+  // BOTÕES HOME
+  document.getElementById('btn-nova').onclick=function(){irFormulario();};
+  document.getElementById('btn-lista').onclick=function(){irPg('pg-lista');navAct('nav-hist');renderLista();};
+  // BOTÕES NAV
+  document.getElementById('nav-home').onclick=function(){irPg('pg-home');navAct('nav-home');};
+  document.getElementById('nav-insp').onclick=function(){irFormulario();navAct('nav-insp');};
+  document.getElementById('nav-hist').onclick=function(){irPg('pg-lista');navAct('nav-hist');renderLista();};
+  var navAdm = document.getElementById('nav-admin');
+  if(navAdm) navAdm.onclick=function(){
+    irPg('pg-admin');navAct('nav-admin');
+    carregarDadosAdmin();
+    // validade padrão = 1 ano
+    var d=new Date(); d.setFullYear(d.getFullYear()+1);
+    document.getElementById('adm-validade').value=d.toISOString().split('T')[0];
+  };
+  // BOTÃO CARREGAR COMPONENTES
+  document.getElementById('btn-carregar-comps').onclick=function(){renderComps();};
+  // BOTÃO SALVAR
+  document.getElementById('btn-salvar').onclick=function(){salvarInspecao();};
+  // BOTÕES SUCESSO
+  document.getElementById('btn-wa').onclick=function(){enviarWA();};
+  document.getElementById('btn-mail').onclick=function(){enviarEmail();};
+  document.getElementById('btn-pdf').onclick=function(){gerarPDF();};
+  document.getElementById('btn-nova2').onclick=function(){irFormulario();};
+  document.getElementById('btn-home').onclick=function(){irPg('pg-home');navAct('nav-home');};
+  // CONCLUSÃO
+  document.querySelectorAll('.conc-btn').forEach(function(btn){
+    btn.onclick=function(){document.querySelectorAll('.conc-btn').forEach(function(b){b.classList.remove('sel');});btn.classList.add('sel');};
+  });
+};
+
+function irFormulario(){
+  document.getElementById('f-data').value=new Date().toISOString().split('T')[0];
+  document.getElementById('comps-container').innerHTML='';
+  document.getElementById('card-conclusao').style.display='none';
+  document.querySelectorAll('.conc-btn').forEach(function(b){b.classList.remove('sel');});
+  limparFotos();
+  document.getElementById('f-obs').value='';
+  irPg('pg-form');
+  navAct('nav-insp');
+}
+
+// ════════ COMPONENTES ════════
+function renderComps(){
+  const modelo=document.getElementById('f-modelo').value;
+  const params=P[modelo];
+  const cont=document.getElementById('comps-container');
+  cont.innerHTML='';
+  params.forEach(function(p,pi){
+    const div=document.createElement('div');
+    div.className='comp aberto';
+    div.id='comp-'+pi;
+    const lados=p.lados?['LE','LD']:['Unico'];
+    let corpo='';
+    lados.forEach(function(lado){
+      if(p.lados) corpo+='<div class="lado-ttl '+(lado==='LE'?'lado-le':'lado-ld')+'">'+(lado==='LE'?'◀ Lado Esquerdo (LE)':'▶ Lado Direito (LD)')+'</div>';
+      if(p.rot>0){
+        corpo+='<div class="rot-grid">';
+        for(let r=1;r<=p.rot;r++){
+          corpo+='<div class="rot-item"><div class="rot-lbl">'+r+'º Rolete</div>';
+          p.ms.forEach(function(m,mi){
+            var id='f-'+pi+'-'+lado+'-r'+r+'-'+mi;
+            var pid='p-'+pi+'-'+lado+'-r'+r+'-'+mi;
+            corpo+='<div class="med-row"><span class="med-tag '+m.c+'">'+m.g+'</span>'
+              +'<input class="med-inp" type="number" step="0.1" inputmode="decimal" placeholder="'+m.r0+' → '+m.r1+'" id="'+id+'" data-r0="'+m.r0+'" data-r1="'+m.r1+'" data-d="'+m.d+'" data-pi="'+pi+'">'
+              +'<span class="med-pct" id="'+pid+'">—</span></div>';
+          });
+          corpo+='</div>';
+        }
+        corpo+='</div>';
+      } else {
+        p.ms.forEach(function(m,mi){
+          var id='f-'+pi+'-'+lado+'-'+mi;
+          var pid='p-'+pi+'-'+lado+'-'+mi;
+          corpo+='<div class="med-row"><span class="med-tag '+m.c+'">'+m.g+' '+m.lb+'</span>'
+            +'<input class="med-inp" type="number" step="0.1" inputmode="decimal" placeholder="'+m.r0+' → '+m.r1+'" id="'+id+'" data-r0="'+m.r0+'" data-r1="'+m.r1+'" data-d="'+m.d+'" data-pi="'+pi+'">'
+            +'<span class="med-pct" id="'+pid+'">—</span></div>';
+        });
+      }
+      if(p.lados&&lado==='LE') corpo+='<div style="height:6px;"></div>';
+    });
+    div.innerHTML='<div class="comp-hdr" id="hdr-'+pi+'"><div class="comp-num">'+p.n+'</div><div class="comp-nome">'+p.t+'</div><span class="comp-badge bv" id="badge-'+pi+'">—</span><span class="comp-seta">▼</span></div><div class="comp-body">'+corpo+'</div>';
+    cont.appendChild(div);
+    // Toggle
+    document.getElementById('hdr-'+pi).addEventListener('click',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA')return;div.classList.toggle('aberto');});
+  });
+  // Eventos de input
+  cont.querySelectorAll('.med-inp').forEach(function(inp){
+    inp.removeAttribute('readonly');
+    inp.setAttribute('autocomplete','off');
+    inp.addEventListener('click',function(e){e.stopPropagation();});
+    inp.addEventListener('touchstart',function(e){e.stopPropagation();},{passive:true});
+    inp.addEventListener('input',function(){
+      var r0=parseFloat(inp.dataset.r0), r1=parseFloat(inp.dataset.r1), d=inp.dataset.d, pi=inp.dataset.pi;
+      var val=parseFloat(inp.value);
+      // Derivar id do pct
+      var pid=inp.id.replace('f-','p-');
+      var pel=document.getElementById(pid);
+      if(isNaN(val)||inp.value===''){if(pel)pel.textContent='—';pel.className='med-pct';atualizarBadge(pi);return;}
+      var p=Math.min(100,Math.round(d==='d'?(r0-val)/(r0-r1)*100:(val-r0)/(r1-r0)*100));
+      if(p<0)p=0;
+      if(pel){pel.textContent=p+'%';pel.className=p>=70?'med-pct pcr':p>=45?'med-pct pat':'med-pct pok';}
+      atualizarBadge(pi);
+    });
+  });
+  document.getElementById('card-conclusao').style.display='block';
+}
+
+function atualizarBadge(pi){
+  var block=document.getElementById('comp-'+pi);
+  if(!block)return;
+  var pcts=block.querySelectorAll('.med-pct');
+  var max=0,tem=false;
+  pcts.forEach(function(s){var v=parseInt(s.textContent);if(!isNaN(v)){tem=true;if(v>max)max=v;}});
+  var badge=document.getElementById('badge-'+pi);
+  if(!badge)return;
+  if(!tem){badge.textContent='—';badge.className='comp-badge bv';return;}
+  if(max>=70){badge.textContent='Crítico';badge.className='comp-badge bcr';}
+  else if(max>=45){badge.textContent='Atenção';badge.className='comp-badge bat';}
+  else{badge.textContent='Normal';badge.className='comp-badge bok';}
+}
+
+// ════════ SALVAR ════════
+function salvarInspecao(){
+  var ins=document.getElementById('f-inspetor').value.trim();
+  var fr=document.getElementById('f-frota').value.trim();
+  var hor=document.getElementById('f-horim').value.trim();
+  var modelo=document.getElementById('f-modelo').value;
+  if(!ins){alert('Informe o nome do inspetor.');return;}
+  if(!fr){alert('Informe a frota.');return;}
+  if(!hor){alert('Informe o horímetro.');return;}
+  if(!document.getElementById('comps-container').children.length){alert('Clique em "Carregar componentes" antes de salvar.');return;}
+  localStorage.setItem('rc_ins',ins);
+  var wt=document.getElementById('f-whats').value; if(wt)localStorage.setItem('rc_wt',wt);
+  var em=document.getElementById('f-email').value; if(em)localStorage.setItem('rc_em',em);
+  var params=P[modelo];
+  var meds=[];
+  params.forEach(function(p,pi){
+    var lados=p.lados?['LE','LD']:['Unico'];
+    lados.forEach(function(lado){
+      if(p.rot>0){
+        for(var r=1;r<=p.rot;r++){
+          p.ms.forEach(function(m,mi){
+            var el=document.getElementById('f-'+pi+'-'+lado+'-r'+r+'-'+mi);
+            if(!el||el.value==='')return;
+            var val=parseFloat(el.value); if(isNaN(val))return;
+            var pc=Math.min(100,Math.max(0,Math.round(m.d==='d'?(m.r0-val)/(m.r0-m.r1)*100:(val-m.r0)/(m.r1-m.r0)*100)));
+            meds.push({comp:p.t,num:p.n,lado:lado,rot:r,met:m.lb,val:val,r0:m.r0,r1:m.r1,pct:pc,st:pc>=70?'Crítico':pc>=45?'Atenção':'Normal'});
+          });
+        }
+      } else {
+        p.ms.forEach(function(m,mi){
+          var el=document.getElementById('f-'+pi+'-'+lado+'-'+mi);
+          if(!el||el.value==='')return;
+          var val=parseFloat(el.value); if(isNaN(val))return;
+          var pc=Math.min(100,Math.max(0,Math.round(m.d==='d'?(m.r0-val)/(m.r0-m.r1)*100:(val-m.r0)/(m.r1-m.r0)*100)));
+          meds.push({comp:p.t,num:p.n,lado:lado==='Unico'?'Único':lado,rot:null,met:m.lb,val:val,r0:m.r0,r1:m.r1,pct:pc,st:pc>=70?'Crítico':pc>=45?'Atenção':'Normal'});
+        });
+      }
+    });
+  });
+  var concBtn=document.querySelector('.conc-btn.sel');
+  var mLabel=modelo==='CH570'?'JD CH570':modelo==='CH950'?'JD CH950':'Case IH 9900';
+  atual={id:Date.now(),ins:ins,fr:fr,modelo:mLabel,hor:parseFloat(hor),data:document.getElementById('f-data').value,frente:document.getElementById('f-frente').value,girada:document.getElementById('f-girada').value,conc:concBtn?concBtn.dataset.v:'',obs:document.getElementById('f-obs').value,wt:wt,em:em,meds:meds,fotos:[...fotosAtuais],ts:new Date().toISOString()};
+  lista.unshift(atual);
+  salvarLista();
+  atualizarKPIs();
+  renderRecentes();
+  // Tentar salvar no Supabase (assíncrono, não bloqueia)
+  salvarSupabase(atual).then(function(ok){
+    if(ok) console.log('Salvo no banco central');
+    else console.log('Salvo localmente - sem conexão');
+  });
+  mostrarSucesso();
+}
+
+function mostrarSucesso(){
+  var i=atual; if(!i)return;
+  var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  var crits=i.meds.filter(function(m){return m.st==='Crítico';});
+  var atenc=i.meds.filter(function(m){return m.st==='Atenção';});
+  // Resetar fotos para nova inspeção (mas manter referência no objeto atual)
+  if(atual.fotos && atual.fotos.length>0){
+    var fotoEl = document.getElementById('fotos-sucesso');
+    if(fotoEl){
+      fotoEl.innerHTML='<div style="margin-bottom:12px;"><div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:8px;">📷 '+atual.fotos.length+' foto(s) anexada(s)</div>'
+        +'<div class="fotos-grid">'+atual.fotos.map(function(b64,i){return '<div class="foto-thumb"><img src="'+b64+'"></div>';}).join('')+'</div></div>';
+    }
+  } else {
+    var fotoEl=document.getElementById('fotos-sucesso');
+    if(fotoEl) fotoEl.innerHTML='';
+  }
+  document.getElementById('sucesso-info').innerHTML='Frota <b>'+i.fr+'</b> — '+i.modelo+'<br>'+dt+' · '+i.ins+'<br>'+i.meds.length+' medições registradas';
+  // Críticos por componente
+  var bcEl=document.getElementById('box-criticos');
+  if(crits.length>0){
+    bcEl.innerHTML='<div class="alert-box" style="background:var(--rl);">'
+      +'<div class="alert-ttl" style="color:var(--r);">⚠️ Componentes CRÍTICOS ('+crits.length+')</div>'
+      +crits.map(function(m){return '<div class="alert-row" style="color:var(--r);"><b>'+m.comp+'</b> · '+m.lado+(m.rot?' · R'+m.rot:'')+'<br><span style="font-size:11px;">'+m.val+' mm = '+m.pct+'% · Ref.nova: '+m.r0+' mm · Ref.final: '+m.r1+' mm</span></div>';}).join('')
+      +'</div>';
+  } else bcEl.innerHTML='';
+  var baEl=document.getElementById('box-atencao');
+  if(atenc.length>0){
+    baEl.innerHTML='<div class="alert-box" style="background:var(--al);">'
+      +'<div class="alert-ttl" style="color:var(--a);">⚡ Em Atenção ('+atenc.length+')</div>'
+      +atenc.map(function(m){return '<div class="alert-row" style="color:var(--a);">'+m.comp+' · '+m.lado+(m.rot?' · R'+m.rot:'')+' — '+m.val+' mm = '+m.pct+'%</div>';}).join('')
+      +'</div>';
+  } else baEl.innerHTML='';
+  irPg('pg-sucesso');
+}
+
+// ════════ WHATSAPP ════════
+function enviarWA(){
+  var i=atual; if(!i){alert('Nenhuma inspeção carregada.');return;}
+  var num=(i.wt||'').replace(/\D/g,'');
+  var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  var crits=i.meds.filter(function(m){return m.st==='Crítico';});
+  var atenc=i.meds.filter(function(m){return m.st==='Atenção';});
+  var msg='*RELATÓRIO DE INSPEÇÃO — RodanteCheck*\n\n';
+  msg+='📌 *Frota:* '+i.fr+'\n🚜 *Modelo:* '+i.modelo+'\n📅 *Data:* '+dt+'\n⏱ *Horímetro:* '+i.hor+' h\n👷 *Inspetor:* '+i.ins+'\n';
+  if(i.frente)msg+='📍 *Frente:* '+i.frente+'\n';
+  msg+='🔄 *Corrente girada:* '+i.girada+'\n\n';
+  if(crits.length>0){
+    msg+='⚠️ *COMPONENTES CRÍTICOS ('+crits.length+'):*\n';
+    crits.forEach(function(m){msg+='• *'+m.comp+'* · '+m.lado+(m.rot?' · R'+m.rot:'')+'\n  Medido: '+m.val+' mm → '+m.pct+'% desgaste\n  Ref.nova: '+m.r0+' mm | Ref.final: '+m.r1+' mm\n';});
+    msg+='\n';
+  }
+  if(atenc.length>0){
+    msg+='⚡ *EM ATENÇÃO ('+atenc.length+'):*\n';
+    atenc.forEach(function(m){msg+='• '+m.comp+' · '+m.lado+(m.rot?' R'+m.rot:'')+': '+m.val+'mm ('+m.pct+'%)\n';});
+    msg+='\n';
+  }
+  if(crits.length===0&&atenc.length===0)msg+='✅ *Todos os componentes medidos estão normais*\n\n';
+  msg+='📋 *Conclusão:* '+(i.conc||'—')+'\n';
+  if(i.obs)msg+='📝 *Obs:* '+i.obs+'\n';
+  if(i.fotos && i.fotos.length>0) msg+='\n📷 *'+i.fotos.length+' foto(s)* anexada(s) à inspeção — disponível no PDF completo';
+  msg+='\n_RodanteCheck · rodantecheck.com.br_';
+  var url=num?'https://wa.me/55'+num+'?text='+encodeURIComponent(msg):'https://wa.me/?text='+encodeURIComponent(msg);
+  window.open(url,'_blank');
+}
+
+// ════════ EMAIL ════════
+function enviarEmail(){
+  var i=atual; if(!i){alert('Nenhuma inspeção carregada.');return;}
+  var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  var crits=i.meds.filter(function(m){return m.st==='Crítico';});
+  var atenc=i.meds.filter(function(m){return m.st==='Atenção';});
+  var sub='[RodanteCheck] Inspeção Frota '+i.fr+' — '+dt;
+  var body='RELATÓRIO DE INSPEÇÃO — RODANTECHECK\n'+'='.repeat(45)+'\n\nFrota: '+i.fr+'\nModelo: '+i.modelo+'\nData: '+dt+'\nHorímetro: '+i.hor+' h\nInspetor: '+i.ins+'\n';
+  if(i.frente)body+='Frente: '+i.frente+'\n';
+  body+='Corrente girada: '+i.girada+'\n\n';
+  if(crits.length>0){body+='COMPONENTES CRÍTICOS ('+crits.length+'):\n'+'-'.repeat(40)+'\n';crits.forEach(function(m){body+='• '+m.comp+' · '+m.lado+(m.rot?' · Rolete '+m.rot:'')+'\n  Valor: '+m.val+' mm = '+m.pct+'% desgaste\n  Ref.nova: '+m.r0+' mm | Ref.final: '+m.r1+' mm\n\n';});}
+  if(atenc.length>0){body+='EM ATENÇÃO ('+atenc.length+'):\n'+'-'.repeat(40)+'\n';atenc.forEach(function(m){body+='• '+m.comp+' · '+m.lado+(m.rot?' R'+m.rot:'')+': '+m.val+'mm ('+m.pct+'%)\n';});body+='\n';}
+  if(crits.length===0&&atenc.length===0)body+='Todos os componentes medidos estão normais.\n\n';
+  body+='Conclusão: '+(i.conc||'—')+'\n';
+  if(i.obs)body+='Observações: '+i.obs+'\n';
+  body+='\nTotal de medições: '+i.meds.length+'\n\nRodanteCheck | rodantecheck.com.br';
+  window.location.href='mailto:'+(i.em||'')+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
+}
+
+// ════════ PDF ════════
+function gerarPDF(){
+  var i=atual; if(!i){alert('Nenhuma inspeção carregada.');return;}
+  if(!window.jspdf){alert('PDF não disponível. Verifique sua conexão.');return;}
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=210,M=14,CW=W-M*2,y=0;
+  var O=[244,121,32],K=[26,58,74],BL=[255,255,255],C=[100,98,90];
+  var Gn=[46,125,50],GL=[232,245,233],Am=[230,81,0],AL=[255,248,225],Rm=[198,40,40],RL=[255,235,238];
+  var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  var crits=i.meds.filter(function(m){return m.st==='Crítico';});
+  var atenc=i.meds.filter(function(m){return m.st==='Atenção';});
+  // Header
+  doc.setFillColor(K[0],K[1],K[2]);doc.rect(0,0,W,22,'F');
+  doc.setFillColor(O[0],O[1],O[2]);doc.rect(0,22,W,3,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255,255,255);
+  doc.text('RELATÓRIO DE INSPEÇÃO — ESTEIRAS RODANTES',M,13);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,178,170);
+  doc.text('RodanteCheck · Parâmetros Oficiais ITM',M,19);
+  y=30;
+  // Dados
+  doc.setFillColor(240,238,232);doc.rect(M,y,CW,7,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(C[0],C[1],C[2]);
+  doc.text('DADOS DA INSPEÇÃO',M+2,y+5);y+=9;
+  var rows=[['Frota',i.fr,'Modelo',i.modelo],['Data',dt,'Horímetro',i.hor+' h'],['Inspetor',i.ins,'Frente',i.frente||'—'],['C. Girada',i.girada,'Conclusão',i.conc||'—']];
+  rows.forEach(function(r,ri){
+    var bg=ri%2===0?[255,255,255]:[247,246,243];
+    doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,CW/2,7,'F');doc.rect(M+CW/2,y,CW/2,7,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(C[0],C[1],C[2]);
+    doc.text(r[0],M+2,y+3);doc.text(r[2],M+CW/2+2,y+3);
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(K[0],K[1],K[2]);
+    doc.text(String(r[1]||'—'),M+2,y+6.5);doc.text(String(r[3]||'—'),M+CW/2+2,y+6.5);y+=8;
+  });y+=3;
+  // Críticos
+  if(crits.length>0){
+    doc.setFillColor(Rm[0],Rm[1],Rm[2]);doc.rect(M,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);
+    doc.text('COMPONENTES CRÍTICOS — '+crits.length+' item(ns)',M+2,y+5);y+=9;
+    crits.forEach(function(m){
+      if(y>265){doc.addPage();y=14;}
+      doc.setFillColor(RL[0],RL[1],RL[2]);doc.rect(M,y,CW,13,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(Rm[0],Rm[1],Rm[2]);
+      doc.text(m.comp+' · '+m.lado+(m.rot?' · Rolete '+m.rot:''),M+2,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(K[0],K[1],K[2]);
+      doc.text('Medido: '+m.val+' mm  ·  '+m.pct+'% desgaste  ·  Ref.nova: '+m.r0+' mm  ·  Ref.final: '+m.r1+' mm',M+2,y+10);y+=14;
+    });y+=2;
+  }
+  // Atenção
+  if(atenc.length>0){
+    doc.setFillColor(Am[0],Am[1],Am[2]);doc.rect(M,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);
+    doc.text('EM ATENÇÃO — '+atenc.length+' item(ns)',M+2,y+5);y+=9;
+    atenc.forEach(function(m){
+      if(y>265){doc.addPage();y=14;}
+      doc.setFillColor(AL[0],AL[1],AL[2]);doc.rect(M,y,CW,8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(Am[0],Am[1],Am[2]);
+      doc.text(m.comp+' · '+m.lado+(m.rot?' · R'+m.rot:'')+' — '+m.val+' mm = '+m.pct+'%  (ref.nova '+m.r0+'mm / final '+m.r1+'mm)',M+2,y+5.5);y+=9;
+    });y+=2;
+  }
+  if(crits.length===0&&atenc.length===0){
+    doc.setFillColor(GL[0],GL[1],GL[2]);doc.rect(M,y,CW,10,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(Gn[0],Gn[1],Gn[2]);
+    doc.text('Todos os componentes medidos estão normais',M+2,y+7);y+=14;
+  }
+  // Tabela
+  if(i.meds.length>0){
+    if(y>230){doc.addPage();y=14;}
+    doc.setFillColor(O[0],O[1],O[2]);doc.rect(M,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
+    doc.text('TODAS AS MEDIÇÕES — '+i.meds.length+' registros',M+2,y+5);y+=9;
+    var cols=[32,18,10,12,18,16,16,20];
+    var hds=['Componente','Método','Lado','Rolete','Valor mm','Ref.Nova','Desgaste','Status'];
+    doc.setFillColor(K[0],K[1],K[2]);doc.rect(M,y,CW,6,'F');
+    var cx=M;hds.forEach(function(h,hi){doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);doc.text(h,cx+1,y+4.2);cx+=cols[hi];});y+=7;
+    // Ordenar na sequência do formulário: por componente (num), lado (LE→LD), rolete
+    var sorted=i.meds.slice().sort(function(a,b){
+      if(a.num!==b.num) return a.num-b.num;
+      var lo={'LE':0,'LD':1,'Único':2};
+      var la=lo[a.lado]!==undefined?lo[a.lado]:2;
+      var lb=lo[b.lado]!==undefined?lo[b.lado]:2;
+      if(la!==lb) return la-lb;
+      return (a.rot||0)-(b.rot||0);
+    });
+    sorted.forEach(function(m,ri){
+      if(y>270){doc.addPage();y=14;}
+      var sbg=m.st==='Crítico'?RL:m.st==='Atenção'?AL:ri%2===0?[255,255,255]:[247,246,243];
+      var sfg=m.st==='Crítico'?Rm:m.st==='Atenção'?Am:Gn;
+      doc.setFillColor(sbg[0],sbg[1],sbg[2]);doc.rect(M,y,CW,6,'F');
+      var vals=[m.comp,m.met,m.lado,m.rot?m.rot+'º':'—',m.val+' mm',m.r0+' mm',m.pct+'%',m.st];
+      cx=M;vals.forEach(function(v,vi){doc.setFont('helvetica',vi===7?'bold':'normal');doc.setFontSize(7);doc.setTextColor(vi===7?sfg[0]:K[0],vi===7?sfg[1]:K[1],vi===7?sfg[2]:K[2]);doc.text(String(v).substring(0,vi===0?20:14),cx+1,y+4.2);cx+=cols[vi];});y+=6.5;
+    });
+  }
+  // Fotos
+  if(i.fotos && i.fotos.length>0){
+    if(y>230){doc.addPage();y=14;}
+    doc.setFillColor(O[0],O[1],O[2]);doc.rect(M,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
+    doc.text('FOTOS DA INSPEÇÃO ('+i.fotos.length+')',M+2,y+5);y+=10;
+    var fW=55, fH=40, fGap=6, fPerRow=3;
+    var fx=M;
+    i.fotos.forEach(function(b64,fi){
+      if(y+fH>265){doc.addPage();y=14;fx=M;}
+      try{doc.addImage(b64,'JPEG',fx,y,fW,fH);}catch(e){}
+      fx+=fW+fGap;
+      if((fi+1)%fPerRow===0){y+=fH+fGap;fx=M;}
+    });
+    if(i.fotos.length%fPerRow!==0) y+=fH+fGap;
+    y+=4;
+  }
+  // Obs
+  if(i.obs){if(y>260){doc.addPage();y=14;}y+=3;doc.setFillColor(240,238,232);doc.rect(M,y,CW,6,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(C[0],C[1],C[2]);doc.text('OBSERVAÇÕES',M+2,y+4.3);y+=8;doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(K[0],K[1],K[2]);doc.text(i.obs.substring(0,100),M+2,y);y+=8;}
+  // Rodapé
+  doc.setFillColor(K[0],K[1],K[2]);doc.rect(0,272,W,25,'F');
+  doc.setFillColor(O[0],O[1],O[2]);doc.rect(0,272,3,25,'F');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(180,178,170);
+  var usinaNomePdf = usinaAtual ? usinaAtual.nome : 'RodanteCheck';
+  doc.text('RodanteCheck  ·  '+usinaNomePdf+'  ·  Frota '+i.fr+'  ·  '+dt+'  ·  '+i.ins,M,280);
+  doc.text('Gerado em '+new Date().toLocaleString('pt-BR')+'  ·  rodantecheck.com.br',M,286);
+  // Tentar compartilhar direto (Web Share API) — sem baixar
+  var pdfBlob = doc.output('blob');
+  var pdfFile = new File([pdfBlob], 'Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf', {type:'application/pdf'});
+  
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[pdfFile]})){
+    navigator.share({
+      title: 'Inspeção Frota '+i.fr,
+      text: 'Relatório de inspeção — RodanteCheck',
+      files: [pdfFile]
+    }).catch(function(err){
+      if(err.name !== 'AbortError') doc.save('Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf');
+    });
+  } else {
+    // Fallback: baixar normalmente
+    doc.save('Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf');
+  }
+}
+
+// ════════ KPIs / LISTAS ════════
+function atualizarKPIs(){
+  lista=JSON.parse(localStorage.getItem('rc3')||'[]');
+  var cr=lista.filter(function(i){return i.meds.some(function(m){return m.st==='Crítico';});});
+  var at=lista.filter(function(i){return !cr.includes(i)&&i.meds.some(function(m){return m.st==='Atenção';});});
+  document.getElementById('kpi-total').textContent=lista.length;
+  document.getElementById('kpi-crit').textContent=cr.length;
+  document.getElementById('kpi-atenc').textContent=at.length;
+}
+
+function renderRecentes(){
+  lista=JSON.parse(localStorage.getItem('rc3')||'[]');
+  var el=document.getElementById('home-recentes');
+  if(!lista.length){el.innerHTML='<div class="vazio">Nenhuma inspeção ainda</div>';return;}
+  el.innerHTML=lista.slice(0,3).map(function(i){return cardInsp(i,false);}).join('');
+}
+
+function renderLista(){
+  lista=JSON.parse(localStorage.getItem('rc3')||'[]');
+  var el=document.getElementById('lista-container');
+  if(!lista.length){el.innerHTML='<div class="vazio">Nenhuma inspeção salva</div>';return;}
+  el.innerHTML=lista.map(function(i){return cardInsp(i,true);}).join('');
+  // Adicionar eventos dos botões
+  lista.forEach(function(i){
+    var bv=document.getElementById('bver-'+i.id);
+    var bw=document.getElementById('bwa-'+i.id);
+    var bd=document.getElementById('bdel-'+i.id);
+    if(bv)bv.onclick=function(){atual=i;mostrarSucesso();};
+    if(bw)bw.onclick=function(){atual=i;enviarWA();};
+    if(bd)bd.onclick=function(){excluir(i.id);};
+  });
+}
+
+function cardInsp(i,full){
+  var crits=i.meds.filter(function(m){return m.st==='Crítico';});
+  var atenc=i.meds.filter(function(m){return m.st==='Atenção';});
+  var ico=crits.length>0?'🔴':atenc.length>0?'🟡':'🟢';
+  var ibg=crits.length>0?'var(--rl)':atenc.length>0?'var(--al)':'var(--gl)';
+  var stxt=crits.length>0?crits.length+' crítico(s)':atenc.length>0?atenc.length+' atenção':'Normal';
+  var sc=crits.length>0?'var(--r)':atenc.length>0?'var(--a)':'var(--g)';
+  var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
+  var btns=full?'<div class="insp-btns">'
+    +'<button class="btn btn-sm bok" id="bver-'+i.id+'" style="background:var(--gl);color:var(--g);">📄 Ver</button>'
+    +'<button class="btn btn-sm" id="bedit-'+i.id+'" style="background:var(--zl,#E3F2FD);color:var(--az,#1565C0);">✏️ Editar</button>'
+    +'<button class="btn btn-sm btn-wa" id="bwa-'+i.id+'">📱</button>'
+    +'<button class="btn btn-sm" id="bdel-'+i.id+'" style="background:var(--rl);color:var(--r);">🗑</button>'
+    +'</div>':'';
+  var det=crits.length>0?'<div style="font-size:11px;color:var(--r);margin-top:3px;">'+crits.slice(0,3).map(function(m){return m.comp+(m.lado!=='Único'?' '+m.lado:'');}).join(', ')+'</div>':'';
+  var tl=full?renderTimeline(i):'';
+  return '<div class="insp-item"><div class="insp-ico" style="background:'+ibg+'">'+ico+'</div>'
+    +'<div class="insp-info"><div class="insp-frota">'+i.fr+' — '+i.modelo+'</div>'
+    +'<div class="insp-meta">'+dt+' · '+i.ins+' · '+i.hor+' h</div>'
+    +'<div class="insp-status" style="color:'+sc+'">'+stxt+' · '+i.meds.length+' medições</div>'
+    +det+'</div>'+btns+'</div>'+tl;
+}
+
+
+// ════════ EDITAR INSPEÇÃO ════════
+function editarInsp(id){
+  var idx = lista.findIndex(function(i){ return i.id === id; });
+  if(idx < 0){ alert('Inspeção não encontrada.'); return; }
+  var i = lista[idx];
+  
+  // Preencher formulário com dados existentes
+  document.getElementById('f-frota').value   = i.fr   || '';
+  document.getElementById('f-modelo').value  = i.modelo || 'CH570';
+  document.getElementById('f-horim').value   = i.hor   || '';
+  document.getElementById('f-data').value    = i.data  || '';
+  document.getElementById('f-ins').value     = i.ins   || '';
+  if(document.getElementById('f-frente'))
+    document.getElementById('f-frente').value = i.frente || '';
+  if(document.getElementById('f-obs'))
+    document.getElementById('f-obs').value    = i.obs   || '';
+  
+  // Marcar girada
+  var chkGiro = document.getElementById('f-girada');
+  if(chkGiro) chkGiro.checked = i.girada === 'Sim' || i.girada === true;
+  
+  // Restaurar medições
+  meds = i.meds ? JSON.parse(JSON.stringify(i.meds)) : [];
+  fotosAtuais = i.fotos ? JSON.parse(JSON.stringify(i.fotos)) : [];
+  
+  // Guardar ID para atualizar (não criar novo)
+  document.getElementById('pg-form').setAttribute('data-edit-id', id);
+  
+  // Ir para o formulário
+  irPg('pg-form'); navAct('nav-insp');
+  
+  // Mostrar aviso de edição
+  var aviso = document.getElementById('aviso-edicao');
+  if(!aviso){
+    aviso = document.createElement('div');
+    aviso.id = 'aviso-edicao';
+    aviso.style.cssText = 'background:var(--al);border:1px solid var(--a);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--a);font-weight:600;display:flex;align-items:center;gap:8px;';
+    aviso.innerHTML = '✏️ Editando inspeção existente — ao salvar, a original será substituída';
+    var form = document.getElementById('pg-form');
+    form.insertBefore(aviso, form.firstChild);
+  }
+  aviso.style.display = 'flex';
+  
+  // Recarregar campos ITM com modelo correto
+  setTimeout(function(){ 
+    var evt = new Event('change');
+    var sel = document.getElementById('f-modelo');
+    if(sel) sel.dispatchEvent(evt);
+  }, 100);
+}
+
+// Modificar salvarInsp para suportar edição
+var _salvarOriginal = null;
+
+
+// ════════ PRÓXIMAS MÁQUINAS A INSPECIONAR ════════
+function calcularProximasInspecoes(){
+  var lista = JSON.parse(localStorage.getItem('rc3')||'[]');
+  
+  // Agrupar última inspeção por frota
+  var ultimaPorFrota = {};
+  lista.forEach(function(i){
+    if(!ultimaPorFrota[i.fr] || new Date(i.data) > new Date(ultimaPorFrota[i.fr].data)){
+      ultimaPorFrota[i.fr] = i;
+    }
+  });
+  
+  // Calcular urgência de cada frota
+  var frotas = Object.values(ultimaPorFrota).map(function(i){
+    var hor = i.hor || 0;
+    var girada = i.girada === 'Sim' || i.girada === true;
+    var proj = calcProjecao(hor, girada);
+    var diasUltima = i.data ? Math.floor((new Date()-new Date(i.data+'T12:00:00'))/(1000*86400)) : 999;
+    
+    // Score de urgência: quanto menor mais urgente
+    var score = proj.hFaltaTroca; // horas para troca
+    if(proj.hFaltaGiro !== null) score = Math.min(score, proj.hFaltaGiro);
+    
+    return {
+      fr: i.fr,
+      modelo: i.modelo,
+      pct: proj.pctVida,
+      hFaltaTroca: proj.hFaltaTroca,
+      hFaltaGiro: proj.hFaltaGiro,
+      diasUltima: diasUltima,
+      dataTroca: proj.dataTroca,
+      dataGiro: proj.dataGiro,
+      girada: girada,
+      score: score
+    };
+  });
+  
+  // Ordenar por urgência
+  frotas.sort(function(a,b){ return a.score - b.score; });
+  return frotas;
+}
+
+function renderProximasMaquinas(){
+  var el = document.getElementById('proximas-maquinas');
+  if(!el) return;
+  
+  var frotas = calcularProximasInspecoes();
+  if(!frotas.length){
+    el.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--t3);font-size:13px;">Faça inspeções para ver as próximas máquinas aqui</div>';
+    return;
+  }
+  
+  // Mostrar top 5 mais urgentes
+  var top = frotas.slice(0,5);
+  var html = top.map(function(f){
+    var urgCor = f.pct>=88?'var(--r)':f.pct>=70?'var(--a)':'var(--g)';
+    var urgBg  = f.pct>=88?'var(--rl)':f.pct>=70?'var(--al)':'var(--gl)';
+    var acao   = '';
+    if(!f.girada && f.hFaltaGiro !== null && f.hFaltaGiro < 400){
+      acao = '🔄 Giro em '+f.hFaltaGiro.toFixed(0)+'h — '+fmtMes(f.dataGiro);
+    } else if(f.pct >= 88){
+      acao = '🔴 Troca urgente! '+f.hFaltaTroca.toFixed(0)+'h restantes';
+    } else if(f.pct >= 70){
+      acao = '⚠️ Troca em '+fmtMes(f.dataTroca)+' ('+f.hFaltaTroca.toFixed(0)+'h)';
+    } else {
+      acao = '✅ Troca prevista '+fmtMes(f.dataTroca);
+    }
+    var diasStr = f.diasUltima===999?'Nunca inspecionada':f.diasUltima===0?'Hoje':f.diasUltima===1?'Ontem':f.diasUltima+' dias atrás';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:8px;margin-bottom:6px;border-left:3px solid '+urgCor+';">'+
+      '<div style="font-size:1.4rem;">🚜</div>'+
+      '<div style="flex:1;">'+
+        '<div style="font-weight:700;font-size:13px;color:var(--k);">Frota '+f.fr+'</div>'+
+        '<div style="font-size:11px;color:var(--t2);margin-top:1px;">'+acao+'</div>'+
+        '<div style="font-size:10px;color:var(--t3);margin-top:1px;">Última inspeção: '+diasStr+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;">'+
+        '<div style="font-size:13px;font-weight:700;color:'+urgCor+'">'+f.pct+'%</div>'+
+        '<div style="font-size:9px;color:var(--t3);">vida</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  
+  el.innerHTML = html;
+}
+
+// ════════ CÂMERA E FOTOS ════════
+function abrirCamera(){
+  document.getElementById('input-foto').click();
+}
+
+function adicionarFotos(input){
+  var files = Array.from(input.files);
+  if(fotosAtuais.length + files.length > 6){
+    alert('Máximo de 6 fotos por inspeção.');
+    files = files.slice(0, 6 - fotosAtuais.length);
+  }
+  files.forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      // Redimensionar para economizar espaço
+      var img = new Image();
+      img.onload = function(){
+        var canvas = document.createElement('canvas');
+        var max = 800;
+        var w = img.width, h = img.height;
+        if(w > max){h = Math.round(h*max/w);w=max;}
+        if(h > max){w = Math.round(w*max/h);h=max;}
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        var b64 = canvas.toDataURL('image/jpeg', 0.75);
+        fotosAtuais.push(b64);
+        renderFotos();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
+}
+
+function renderFotos(){
+  var grid = document.getElementById('fotos-grid');
+  var count = document.getElementById('foto-count');
+  if(!grid) return;
+  grid.innerHTML = fotosAtuais.map(function(b64, i){
+    return '<div class="foto-thumb">'
+      +'<img src="'+b64+'" onclick="verFoto('+i+')">'
+      +'<button class="foto-del" onclick="delFoto('+i+')">✕</button>'
+      +'</div>';
+  }).join('');
+  count.textContent = fotosAtuais.length>0?fotosAtuais.length+' foto(s) adicionada(s)':'';
+  // Mostrar/esconder botão de camera se atingiu limite
+  var btn = document.querySelector('.foto-btn');
+  if(btn) btn.style.display = fotosAtuais.length>=6?'none':'flex';
+}
+
+function delFoto(i){
+  fotosAtuais.splice(i,1);
+  renderFotos();
+}
+
+function verFoto(i){
+  var overlay = document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML='<img src="'+fotosAtuais[i]+'" style="max-width:95%;max-height:95%;border-radius:8px;">'
+    +'<button onclick="this.parentElement.remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.2);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;">✕</button>';
+  document.body.appendChild(overlay);
+}
+
+function limparFotos(){
+  fotosAtuais=[];
+  renderFotos();
+}
+
+function excluir(id){
+  if(!confirm('Excluir esta inspeção?'))return;
+  lista=lista.filter(function(x){return x.id!==id;});
+  salvarLista();atualizarKPIs();renderLista();renderRecentes();
+}
+</script>
+</body>
+</html>
