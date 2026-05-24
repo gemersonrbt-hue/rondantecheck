@@ -27,25 +27,13 @@ CREATE POLICY "Público cria" ON inspecoes_campo FOR INSERT WITH CHECK (true);
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-  <!-- PWA · build 202605122254 -->
-  <meta name="theme-color" content="#F47920">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="RodanteCheck">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="RodanteCheck">
-  <meta name="description" content="Sistema de inspeção de esteiras rodantes para colhedoras de cana">
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#F47920">
 <title>RodanteCheck — Inspeção</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-:root{--o:#F47920;--od:#C85E00;--ol:#FFF3E0;--k:#141210;--w:#FAFAF7;--w2:#F2F0EA;--g:#2E7D32;--gl:#E8F5E9;--r:#C62828;--rl:#FFEBEE;--a:#E65100;--al:#FFF8E1;--t2:#5A554A;--t3:#9A9488;--bd:#E0DDD5;}
+:root{--o:#F47920;--od:#C85E00;--ol:#FFF3E0;--k:#1A3A4A;--w:#FAFAF7;--w2:#F2F0EA;--g:#2E7D32;--gl:#E8F5E9;--r:#C62828;--rl:#FFEBEE;--a:#E65100;--al:#FFF8E1;--t2:#5A554A;--t3:#9A9488;--bd:#E0DDD5;}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--w2);color:var(--k);min-height:100vh;padding-bottom:80px;}
 .topbar{background:var(--k);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:99;box-shadow:0 2px 10px rgba(0,0,0,.4);}
 .logo{width:34px;height:34px;background:var(--o);border-radius:8px;font-weight:900;font-size:16px;color:var(--k);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -209,6 +197,12 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .timeline-alerta{display:flex;align-items:center;gap:8px;background:var(--rl);border-radius:6px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--r);font-weight:600;}
 .timeline-ok{background:var(--gl);color:var(--g);}
 
+
+/* Azul petróleo variáveis extras */
+:root{--az:#1565C0;--zl:#E3F2FD;--az2:#0D47A1;}
+.btn-edit{background:var(--zl);color:var(--az);}
+.btn-edit:active{background:#BBDEFB;}
+
 </style>
 </head>
 <body>
@@ -244,6 +238,16 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
     <div style="font-size:22px;font-weight:800;" id="saudacao">Olá!</div>
     <div style="font-size:13px;color:var(--t2);margin-top:3px;" id="data-hoje"></div>
   </div>
+  <div style="margin:14px 0 6px;">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--t2);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+      <span style="width:12px;height:2px;background:var(--o);display:inline-block;"></span>
+      Próximas máquinas — por urgência
+    </div>
+    <div id="proximas-maquinas" style="background:var(--w2);border-radius:10px;padding:10px;">
+      <div style="text-align:center;padding:1rem;color:var(--t3);font-size:13px;">Carregando...</div>
+    </div>
+  </div>
+
   <div id="sync-status" class="sync-row sync-offline" style="display:none;">⏳ Conectando...</div>
   <div class="kpi-row">
     <div class="kpi"><div class="kpi-n" style="color:var(--o);" id="kpi-total">0</div><div class="kpi-l">Inspeções</div></div>
@@ -274,13 +278,8 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
       </div>
     </div>
     <div class="row2">
-      <div class="field"><label>Horímetro atual (h) *</label><input type="number" id="f-horim" placeholder="14500" inputmode="numeric" oninput="atualizarVidaEsteira()"></div>
+      <div class="field"><label>Horímetro (h) *</label><input type="number" id="f-horim" placeholder="14500" inputmode="numeric"></div>
       <div class="field"><label>Data</label><input type="date" id="f-data"></div>
-    </div>
-    <div class="field">
-      <label>Horímetro na instalação da esteira (h)</label>
-      <input type="number" id="f-horim-inst" placeholder="Ex: 14200 — deixe vazio se não souber" inputmode="numeric" oninput="atualizarVidaEsteira()">
-      <div id="vida-esteira-preview" style="font-size:12px;margin-top:5px;padding:7px 10px;border-radius:7px;background:var(--gl);color:var(--g);display:none;"></div>
     </div>
     <div class="row2">
       <div class="field"><label>Frente / Talhão</label><input type="text" id="f-frente" placeholder="Ex: Frente A"></div>
@@ -419,7 +418,7 @@ const P={
   CH570:[
     {n:1,t:"Diâmetro da bucha",    rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:13.0, r1:4.5,  d:"d"}]},
     {n:2,t:"Altura do elo",        rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:98.0, r1:86.5, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:98.0,r1:86.5,d:"d"}]},
-    {n:3,t:"Passo da corrente",    rot:0,lados:true,ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:685.2,r1:702.0,d:"a"}]},
+    {n:3,t:"Passo da corrente",    rot:0,lados:false,ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:685.2,r1:702.0,d:"a"}]},
     {n:4,t:"Altura da sapata",     rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:34.5, r1:15.5, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:34.5,r1:15.5,d:"d"}]},
     {n:5,t:"Roda motriz",          rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:187.0,r1:173.5,d:"d"}]},
     {n:6,t:"Roda guia",            rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:23.0, r1:32.0, d:"a"}]},
@@ -429,7 +428,7 @@ const P={
   CH950:[
     {n:1,t:"Diâmetro da bucha",    rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:13.7, r1:4.1,  d:"d"}]},
     {n:2,t:"Altura do elo",        rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:132.0,r1:120.4,d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:132.0,r1:120.4,d:"d"}]},
-    {n:3,t:"Passo da corrente",    rot:0,lados:true,ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:811.2,r1:821.2,d:"a"}]},
+    {n:3,t:"Passo da corrente",    rot:0,lados:false,ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:811.2,r1:821.2,d:"a"}]},
     {n:4,t:"Altura da sapata",     rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:44.0, r1:26.7, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:44.0,r1:26.7,d:"d"}]},
     {n:5,t:"Roda motriz",          rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:222.5,r1:203.0,d:"d"}]},
     {n:6,t:"Roda guia",            rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:22.0, r1:30.0, d:"a"}]},
@@ -439,7 +438,7 @@ const P={
   Case:[
     {n:1,t:"Diâmetro da bucha",    rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:13.0, r1:4.5,  d:"d"}]},
     {n:2,t:"Altura do elo",        rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:106.0,r1:98.0, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:106.0,r1:98.0,d:"d"}]},
-    {n:3,t:"Passo da corrente",    rot:0,lados:true,ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:684.2,r1:701.6,d:"a"}]},
+    {n:3,t:"Passo da corrente",    rot:0,lados:false,ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:684.2,r1:701.6,d:"a"}]},
     {n:4,t:"Altura da sapata",     rot:0,lados:true, ms:[{g:"US",c:"tus",lb:"Ultrassom",   r0:34.5, r1:15.5, d:"d"},{g:"MP",c:"tmp",lb:"Med.prof.",r0:34.5,r1:15.5,d:"d"}]},
     {n:5,t:"Roda motriz",          rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:184.4,r1:171.0,d:"d"}]},
     {n:6,t:"Roda guia",            rot:0,lados:true, ms:[{g:"TR",c:"ttr",lb:"Trena",       r0:23.0, r1:32.0, d:"a"}]},
@@ -840,13 +839,10 @@ var H_MES = 389;   // horas/mês safra
 var VIDA  = 3500;  // vida útil total
 var GIRO  = 1800;  // giro recomendado
 
-function calcProjecao(hor, girada, horInst) {
-  // Usar horas da esteira (hor - horInst) se horInst informado
-  var vidaUsada = (horInst !== null && horInst !== undefined && !isNaN(horInst) && hor > horInst)
-    ? (hor - horInst) : hor;
+function calcProjecao(hor, girada) {
   // Quantas horas faltam para o giro e para a troca
-  var hFaltaGiro  = girada ? null : Math.max(0, GIRO - vidaUsada);
-  var hFaltaTroca = Math.max(0, VIDA - vidaUsada);
+  var hFaltaGiro  = girada ? null : Math.max(0, GIRO - hor);
+  var hFaltaTroca = Math.max(0, VIDA - hor);
   
   // Quantos meses
   var mFaltaGiro  = hFaltaGiro  !== null ? (hFaltaGiro  / H_MES) : null;
@@ -858,12 +854,11 @@ function calcProjecao(hor, girada, horInst) {
   var dataTroca = new Date(hoje.getTime() + mFaltaTroca * 30 * 24*3600*1000);
   
   // % vida atual
-  var pctVida = Math.min(100, Math.round(vidaUsada / VIDA * 100));
-  var pctGiro = Math.min(100, Math.round(vidaUsada / GIRO * 100));
+  var pctVida = Math.min(100, Math.round(hor / VIDA * 100));
+  var pctGiro = Math.min(100, Math.round(hor / GIRO * 100));
   
   return {
     hor: hor,
-    vidaUsada: vidaUsada,
     girada: girada,
     pctVida: pctVida,
     hFaltaGiro: hFaltaGiro,
@@ -882,13 +877,11 @@ function fmtMes(dt) {
 
 function renderTimeline(insp) {
   var hor    = insp.hor || 0;
-  var horInst = insp.horInst || null;
   var girada = insp.girada === 'Sim' || insp.girada === true || insp.girada === 'Girada';
-  var proj   = calcProjecao(hor, girada, horInst);
-  var vidaUsada = proj.vidaUsada || hor;
+  var proj   = calcProjecao(hor, girada);
   
   // Calcular posições na barra (0 a 100%)
-  var posAtual = Math.min(100, vidaUsada / VIDA * 100);
+  var posAtual = Math.min(100, hor / VIDA * 100);
   var posGiro  = Math.min(100, GIRO / VIDA * 100); // ~51%
   
   // Segmentos de cor
@@ -993,7 +986,7 @@ function exportarExcel(){
   dados.forEach(function(d){
     var hor=d.hor||0;
     var girada=d.girada==='Sim'||d.girada===true||d.girada==='Girada';
-    var proj=calcProjecao(hor,girada,d.horInst||null);
+    var proj=calcProjecao(hor,girada);
     var crits=d.meds?d.meds.filter(function(m){return m.st==='Crítico';}).length:0;
     var atc=d.meds?d.meds.filter(function(m){return m.st==='Atenção';}).length:0;
     var status=crits>0?'Crítico':atc>0?'Atenção':'Normal';
@@ -1084,28 +1077,10 @@ window.onload=function(){
   });
 };
 
-function atualizarVidaEsteira(){
-  var hor  = parseFloat(document.getElementById('f-horim').value)||0;
-  var inst = parseFloat(document.getElementById('f-horim-inst').value);
-  var prev = document.getElementById('vida-esteira-preview');
-  if(!prev) return;
-  if(hor && !isNaN(inst) && inst >= 0 && hor >= inst){
-    var vida = hor - inst;
-    var pct  = Math.min(100, Math.round(vida / 3500 * 100));
-    var cor  = pct >= 88 ? 'var(--rl);color:var(--r)' : pct >= 70 ? 'var(--al);color:var(--a)' : 'var(--gl);color:var(--g)';
-    prev.style.cssText = 'font-size:12px;margin-top:5px;padding:7px 10px;border-radius:7px;display:block;background:'+cor;
-    prev.textContent = '⏱ Vida da esteira: '+vida+'h usadas ('+pct+'% de 3.500h)';
-  } else {
-    prev.style.display = 'none';
-  }
-}
-
 function irFormulario(){
   document.getElementById('f-data').value=new Date().toISOString().split('T')[0];
   document.getElementById('comps-container').innerHTML='';
   document.getElementById('card-conclusao').style.display='none';
-  var inst = document.getElementById('f-horim-inst'); if(inst) inst.value='';
-  var prev = document.getElementById('vida-esteira-preview'); if(prev) prev.style.display='none';
   document.querySelectorAll('.conc-btn').forEach(function(b){b.classList.remove('sel');});
   limparFotos();
   document.getElementById('f-obs').value='';
@@ -1234,7 +1209,7 @@ function salvarInspecao(){
   });
   var concBtn=document.querySelector('.conc-btn.sel');
   var mLabel=modelo==='CH570'?'JD CH570':modelo==='CH950'?'JD CH950':'Case IH 9900';
-  atual={id:Date.now(),ins:ins,fr:fr,modelo:mLabel,hor:parseFloat(hor),horInst:parseFloat(document.getElementById('f-horim-inst').value)||null,data:document.getElementById('f-data').value,frente:document.getElementById('f-frente').value,girada:document.getElementById('f-girada').value,conc:concBtn?concBtn.dataset.v:'',obs:document.getElementById('f-obs').value,wt:wt,em:em,meds:meds,fotos:[...fotosAtuais],ts:new Date().toISOString()};
+  atual={id:Date.now(),ins:ins,fr:fr,modelo:mLabel,hor:parseFloat(hor),data:document.getElementById('f-data').value,frente:document.getElementById('f-frente').value,girada:document.getElementById('f-girada').value,conc:concBtn?concBtn.dataset.v:'',obs:document.getElementById('f-obs').value,wt:wt,em:em,meds:meds,fotos:[...fotosAtuais],ts:new Date().toISOString()};
   lista.unshift(atual);
   salvarLista();
   atualizarKPIs();
@@ -1338,7 +1313,7 @@ function gerarPDF(){
   var jsPDF=window.jspdf.jsPDF;
   var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   var W=210,M=14,CW=W-M*2,y=0;
-  var O=[244,121,32],K=[20,18,16],BL=[255,255,255],C=[100,98,90];
+  var O=[244,121,32],K=[26,58,74],BL=[255,255,255],C=[100,98,90];
   var Gn=[46,125,50],GL=[232,245,233],Am=[230,81,0],AL=[255,248,225],Rm=[198,40,40],RL=[255,235,238];
   var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   var crits=i.meds.filter(function(m){return m.st==='Crítico';});
@@ -1441,7 +1416,22 @@ function gerarPDF(){
   var usinaNomePdf = usinaAtual ? usinaAtual.nome : 'RodanteCheck';
   doc.text('RodanteCheck  ·  '+usinaNomePdf+'  ·  Frota '+i.fr+'  ·  '+dt+'  ·  '+i.ins,M,280);
   doc.text('Gerado em '+new Date().toLocaleString('pt-BR')+'  ·  rodantecheck.com.br',M,286);
-  doc.save('Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf');
+  // Tentar compartilhar direto (Web Share API) — sem baixar
+  var pdfBlob = doc.output('blob');
+  var pdfFile = new File([pdfBlob], 'Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf', {type:'application/pdf'});
+  
+  if(navigator.share && navigator.canShare && navigator.canShare({files:[pdfFile]})){
+    navigator.share({
+      title: 'Inspeção Frota '+i.fr,
+      text: 'Relatório de inspeção — RodanteCheck',
+      files: [pdfFile]
+    }).catch(function(err){
+      if(err.name !== 'AbortError') doc.save('Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf');
+    });
+  } else {
+    // Fallback: baixar normalmente
+    doc.save('Inspecao_'+i.fr+'_'+(i.data||'hoje')+'.pdf');
+  }
 }
 
 // ════════ KPIs / LISTAS ════════
@@ -1471,11 +1461,9 @@ function renderLista(){
     var bv=document.getElementById('bver-'+i.id);
     var bw=document.getElementById('bwa-'+i.id);
     var bd=document.getElementById('bdel-'+i.id);
-    var be=document.getElementById('bedit-'+i.id);
     if(bv)bv.onclick=function(){atual=i;mostrarSucesso();};
     if(bw)bw.onclick=function(){atual=i;enviarWA();};
     if(bd)bd.onclick=function(){excluir(i.id);};
-    if(be)be.onclick=function(){abrirEdicao(i.id);};
   });
 }
 
@@ -1489,7 +1477,7 @@ function cardInsp(i,full){
   var dt=i.data?new Date(i.data+'T12:00:00').toLocaleDateString('pt-BR'):'—';
   var btns=full?'<div class="insp-btns">'
     +'<button class="btn btn-sm bok" id="bver-'+i.id+'" style="background:var(--gl);color:var(--g);">📄 Ver</button>'
-    +'<button class="btn btn-sm" id="bedit-'+i.id+'" style="background:#E3F2FD;color:#0D47A1;">✏️ Editar</button>'
+    +'<button class="btn btn-sm" id="bedit-'+i.id+'" style="background:var(--zl,#E3F2FD);color:var(--az,#1565C0);">✏️ Editar</button>'
     +'<button class="btn btn-sm btn-wa" id="bwa-'+i.id+'">📱</button>'
     +'<button class="btn btn-sm" id="bdel-'+i.id+'" style="background:var(--rl);color:var(--r);">🗑</button>'
     +'</div>':'';
@@ -1500,6 +1488,147 @@ function cardInsp(i,full){
     +'<div class="insp-meta">'+dt+' · '+i.ins+' · '+i.hor+' h</div>'
     +'<div class="insp-status" style="color:'+sc+'">'+stxt+' · '+i.meds.length+' medições</div>'
     +det+'</div>'+btns+'</div>'+tl;
+}
+
+
+// ════════ EDITAR INSPEÇÃO ════════
+function editarInsp(id){
+  var idx = lista.findIndex(function(i){ return i.id === id; });
+  if(idx < 0){ alert('Inspeção não encontrada.'); return; }
+  var i = lista[idx];
+  
+  // Preencher formulário com dados existentes
+  document.getElementById('f-frota').value   = i.fr   || '';
+  document.getElementById('f-modelo').value  = i.modelo || 'CH570';
+  document.getElementById('f-horim').value   = i.hor   || '';
+  document.getElementById('f-data').value    = i.data  || '';
+  document.getElementById('f-ins').value     = i.ins   || '';
+  if(document.getElementById('f-frente'))
+    document.getElementById('f-frente').value = i.frente || '';
+  if(document.getElementById('f-obs'))
+    document.getElementById('f-obs').value    = i.obs   || '';
+  
+  // Marcar girada
+  var chkGiro = document.getElementById('f-girada');
+  if(chkGiro) chkGiro.checked = i.girada === 'Sim' || i.girada === true;
+  
+  // Restaurar medições
+  meds = i.meds ? JSON.parse(JSON.stringify(i.meds)) : [];
+  fotosAtuais = i.fotos ? JSON.parse(JSON.stringify(i.fotos)) : [];
+  
+  // Guardar ID para atualizar (não criar novo)
+  document.getElementById('pg-form').setAttribute('data-edit-id', id);
+  
+  // Ir para o formulário
+  irPg('pg-form'); navAct('nav-insp');
+  
+  // Mostrar aviso de edição
+  var aviso = document.getElementById('aviso-edicao');
+  if(!aviso){
+    aviso = document.createElement('div');
+    aviso.id = 'aviso-edicao';
+    aviso.style.cssText = 'background:var(--al);border:1px solid var(--a);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--a);font-weight:600;display:flex;align-items:center;gap:8px;';
+    aviso.innerHTML = '✏️ Editando inspeção existente — ao salvar, a original será substituída';
+    var form = document.getElementById('pg-form');
+    form.insertBefore(aviso, form.firstChild);
+  }
+  aviso.style.display = 'flex';
+  
+  // Recarregar campos ITM com modelo correto
+  setTimeout(function(){ 
+    var evt = new Event('change');
+    var sel = document.getElementById('f-modelo');
+    if(sel) sel.dispatchEvent(evt);
+  }, 100);
+}
+
+// Modificar salvarInsp para suportar edição
+var _salvarOriginal = null;
+
+
+// ════════ PRÓXIMAS MÁQUINAS A INSPECIONAR ════════
+function calcularProximasInspecoes(){
+  var lista = JSON.parse(localStorage.getItem('rc3')||'[]');
+  
+  // Agrupar última inspeção por frota
+  var ultimaPorFrota = {};
+  lista.forEach(function(i){
+    if(!ultimaPorFrota[i.fr] || new Date(i.data) > new Date(ultimaPorFrota[i.fr].data)){
+      ultimaPorFrota[i.fr] = i;
+    }
+  });
+  
+  // Calcular urgência de cada frota
+  var frotas = Object.values(ultimaPorFrota).map(function(i){
+    var hor = i.hor || 0;
+    var girada = i.girada === 'Sim' || i.girada === true;
+    var proj = calcProjecao(hor, girada);
+    var diasUltima = i.data ? Math.floor((new Date()-new Date(i.data+'T12:00:00'))/(1000*86400)) : 999;
+    
+    // Score de urgência: quanto menor mais urgente
+    var score = proj.hFaltaTroca; // horas para troca
+    if(proj.hFaltaGiro !== null) score = Math.min(score, proj.hFaltaGiro);
+    
+    return {
+      fr: i.fr,
+      modelo: i.modelo,
+      pct: proj.pctVida,
+      hFaltaTroca: proj.hFaltaTroca,
+      hFaltaGiro: proj.hFaltaGiro,
+      diasUltima: diasUltima,
+      dataTroca: proj.dataTroca,
+      dataGiro: proj.dataGiro,
+      girada: girada,
+      score: score
+    };
+  });
+  
+  // Ordenar por urgência
+  frotas.sort(function(a,b){ return a.score - b.score; });
+  return frotas;
+}
+
+function renderProximasMaquinas(){
+  var el = document.getElementById('proximas-maquinas');
+  if(!el) return;
+  
+  var frotas = calcularProximasInspecoes();
+  if(!frotas.length){
+    el.innerHTML = '<div style="text-align:center;padding:1rem;color:var(--t3);font-size:13px;">Faça inspeções para ver as próximas máquinas aqui</div>';
+    return;
+  }
+  
+  // Mostrar top 5 mais urgentes
+  var top = frotas.slice(0,5);
+  var html = top.map(function(f){
+    var urgCor = f.pct>=88?'var(--r)':f.pct>=70?'var(--a)':'var(--g)';
+    var urgBg  = f.pct>=88?'var(--rl)':f.pct>=70?'var(--al)':'var(--gl)';
+    var acao   = '';
+    if(!f.girada && f.hFaltaGiro !== null && f.hFaltaGiro < 400){
+      acao = '🔄 Giro em '+f.hFaltaGiro.toFixed(0)+'h — '+fmtMes(f.dataGiro);
+    } else if(f.pct >= 88){
+      acao = '🔴 Troca urgente! '+f.hFaltaTroca.toFixed(0)+'h restantes';
+    } else if(f.pct >= 70){
+      acao = '⚠️ Troca em '+fmtMes(f.dataTroca)+' ('+f.hFaltaTroca.toFixed(0)+'h)';
+    } else {
+      acao = '✅ Troca prevista '+fmtMes(f.dataTroca);
+    }
+    var diasStr = f.diasUltima===999?'Nunca inspecionada':f.diasUltima===0?'Hoje':f.diasUltima===1?'Ontem':f.diasUltima+' dias atrás';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px;background:#fff;border-radius:8px;margin-bottom:6px;border-left:3px solid '+urgCor+';">'+
+      '<div style="font-size:1.4rem;">🚜</div>'+
+      '<div style="flex:1;">'+
+        '<div style="font-weight:700;font-size:13px;color:var(--k);">Frota '+f.fr+'</div>'+
+        '<div style="font-size:11px;color:var(--t2);margin-top:1px;">'+acao+'</div>'+
+        '<div style="font-size:10px;color:var(--t3);margin-top:1px;">Última inspeção: '+diasStr+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;">'+
+        '<div style="font-size:13px;font-weight:700;color:'+urgCor+'">'+f.pct+'%</div>'+
+        '<div style="font-size:9px;color:var(--t3);">vida</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  
+  el.innerHTML = html;
 }
 
 // ════════ CÂMERA E FOTOS ════════
@@ -1576,184 +1705,6 @@ function excluir(id){
   lista=lista.filter(function(x){return x.id!==id;});
   salvarLista();atualizarKPIs();renderLista();renderRecentes();
 }
-
-// ════════ EDIÇÃO DE INSPEÇÃO ════════
-function abrirEdicao(id){
-  var insp = lista.find(function(x){return x.id===id;});
-  if(!insp){alert('Inspeção não encontrada.');return;}
-
-  // Criar modal overlay
-  var overlay = document.createElement('div');
-  overlay.id = 'modal-edicao';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:999;overflow-y:auto;padding:16px;';
-
-  var html = '<div style="background:#fff;border-radius:14px;max-width:520px;margin:0 auto;overflow:hidden;">';
-  // Header
-  html += '<div style="background:var(--k);padding:16px;display:flex;align-items:center;justify-content:space-between;">'
-    +'<div style="color:#fff;font-size:15px;font-weight:700;">✏️ Editar Inspeção — Frota '+insp.fr+'</div>'
-    +'<button onclick="fecharEdicao()" style="background:none;border:none;color:#fff;font-size:20px;cursor:pointer;">✕</button>'
-    +'</div>';
-
-  html += '<div style="padding:16px;">';
-
-  // Dados básicos editáveis
-  html += '<div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--bd);">Dados da inspeção</div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">'
-    +'<div><label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px;">INSPETOR</label>'
-    +'<input id="ed-ins" value="'+escHtml(insp.ins||'')+'" style="width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;"></div>'
-    +'<div><label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px;">HORÍMETRO ATUAL</label>'
-    +'<input id="ed-hor" type="number" value="'+(insp.hor||'')+'" style="width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;" inputmode="numeric"></div>'
-    +'<div style="grid-column:1/-1"><label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px;">HORÍMETRO NA INSTALAÇÃO DA ESTEIRA</label>'
-    +'<input id="ed-horinst" type="number" value="'+(insp.horInst||'')+'" placeholder="Deixe vazio se não souber" style="width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;" inputmode="numeric"></div>'
-    +'<div><label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px;">FRENTE</label>'
-    +'<input id="ed-frente" value="'+escHtml(insp.frente||'')+'" style="width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;"></div>'
-    +'<div><label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px;">GIRADA?</label>'
-    +'<select id="ed-girada" style="width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;">'
-    +'<option value="Sim"'+(insp.girada==='Sim'?' selected':'')+'>Sim</option>'
-    +'<option value="Não"'+(insp.girada==='Não'?' selected':'')+'>Não</option>'
-    +'<option value="N/A"'+(insp.girada==='N/A'?' selected':'')+'>N/A</option>'
-    +'</select></div>'
-    +'</div>';
-
-  // Medições editáveis
-  html += '<div style="font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--bd);">Medições</div>';
-
-  if(insp.meds && insp.meds.length > 0){
-    insp.meds.forEach(function(m, mi){
-      var cor = m.st==='Crítico'?'var(--rl)':m.st==='Atenção'?'var(--al)':'#F7F6F3';
-      var cort = m.st==='Crítico'?'var(--r)':m.st==='Atenção'?'var(--a)':'var(--g)';
-      html += '<div style="background:'+cor+';border-radius:8px;padding:10px;margin-bottom:8px;">'
-        +'<div style="font-size:12px;font-weight:700;color:var(--k);margin-bottom:6px;">'
-        +m.comp+' · '+m.lado+(m.rot?' · Rolete '+m.rot:'')
-        +' <span style="font-size:10px;color:'+cort+';">'+m.st+'</span></div>'
-        +'<div style="display:flex;align-items:center;gap:8px;">'
-        +'<span style="font-size:11px;color:var(--t2);">'+m.met+'</span>'
-        +'<input id="edmed-'+mi+'" type="number" step="0.1" inputmode="decimal" value="'+m.val+'" '
-        +'data-mi="'+mi+'" data-r0="'+m.r0+'" data-r1="'+m.r1+'" data-d="'+m.d+'" '
-        +'style="flex:1;padding:10px;border:2px solid #D0CCC5;border-radius:8px;font-size:18px;font-weight:700;text-align:center;font-family:inherit;" '
-        +'oninput="atualizarPctEdicao(this)">'
-        +'<span id="edpct-'+mi+'" style="font-size:13px;font-weight:800;min-width:44px;text-align:right;color:'+cort+';">'+m.pct+'%</span>'
-        +'</div>'
-        +'<div style="font-size:10px;color:var(--t3);margin-top:4px;">Ref.nova: '+m.r0+' mm · Ref.final: '+m.r1+' mm</div>'
-        +'</div>';
-    });
-  } else {
-    html += '<div style="color:var(--t3);font-size:13px;padding:10px;">Nenhuma medição registrada.</div>';
-  }
-
-  // Observações
-  html += '<div style="margin-top:12px;">'
-    +'<label style="font-size:11px;font-weight:700;color:var(--t2);display:block;margin-bottom:4px;">OBSERVAÇÕES</label>'
-    +'<textarea id="ed-obs" style="width:100%;padding:10px;border:1.5px solid var(--bd);border-radius:8px;font-size:14px;font-family:inherit;resize:none;min-height:70px;">'+escHtml(insp.obs||'')+'</textarea>'
-    +'</div>';
-
-  // Botões
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">'
-    +'<button onclick="fecharEdicao()" style="padding:14px;border:1.5px solid var(--bd);border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;background:#fff;">Cancelar</button>'
-    +'<button onclick="salvarEdicao(\''+id+'\')" style="padding:14px;background:var(--o);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;">💾 Salvar</button>'
-    +'</div>';
-
-  html += '</div></div>';
-  overlay.innerHTML = html;
-  document.body.appendChild(overlay);
-}
-
-function escHtml(s){
-  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function atualizarPctEdicao(inp){
-  var mi = inp.dataset.mi;
-  var r0 = parseFloat(inp.dataset.r0);
-  var r1 = parseFloat(inp.dataset.r1);
-  var d  = inp.dataset.d;
-  var val = parseFloat(inp.value);
-  var pel = document.getElementById('edpct-'+mi);
-  if(!pel) return;
-  if(isNaN(val)){pel.textContent='—';return;}
-  var p = Math.min(100,Math.max(0,Math.round(d==='d'?(r0-val)/(r0-r1)*100:(val-r0)/(r1-r0)*100)));
-  pel.textContent = p+'%';
-  pel.style.color = p>=70?'var(--r)':p>=45?'var(--a)':'var(--g)';
-}
-
-function fecharEdicao(){
-  var m = document.getElementById('modal-edicao');
-  if(m) m.remove();
-}
-
-function salvarEdicao(id){
-  var idx = lista.findIndex(function(x){return x.id==id;});
-  if(idx===-1){alert('Inspeção não encontrada.');return;}
-
-  // Atualizar dados básicos
-  var ins   = document.getElementById('ed-ins');
-  var hor   = document.getElementById('ed-hor');
-  var frente= document.getElementById('ed-frente');
-  var girada= document.getElementById('ed-girada');
-  var obs   = document.getElementById('ed-obs');
-
-  if(ins)    lista[idx].ins    = ins.value.trim();
-  if(hor)    lista[idx].hor    = parseFloat(hor.value)||lista[idx].hor;
-  var horInst = document.getElementById('ed-horinst');
-  if(horInst) lista[idx].horInst = horInst.value!=='' ? parseFloat(horInst.value) : null;
-  if(frente) lista[idx].frente = frente.value.trim();
-  if(girada) lista[idx].girada = girada.value;
-  if(obs)    lista[idx].obs    = obs.value.trim();
-
-  // Atualizar medições
-  lista[idx].meds.forEach(function(m, mi){
-    var inp = document.getElementById('edmed-'+mi);
-    if(!inp || inp.value==='') return;
-    var val = parseFloat(inp.value);
-    if(isNaN(val)) return;
-    var pc = Math.min(100,Math.max(0,Math.round(
-      m.d==='d'?(m.r0-val)/(m.r0-m.r1)*100:(val-m.r0)/(m.r1-m.r0)*100
-    )));
-    lista[idx].meds[mi].val = val;
-    lista[idx].meds[mi].pct = pc;
-    lista[idx].meds[mi].st  = pc>=70?'Crítico':pc>=45?'Atenção':'Normal';
-  });
-
-  salvarLista();
-  atualizarKPIs();
-  fecharEdicao();
-  renderLista();
-  renderRecentes();
-  alert('✅ Inspeção atualizada com sucesso!');
-}
 </script>
-
-  <!-- Registro Service Worker PWA -->
-  <script>
-    if('serviceWorker' in navigator){
-      window.addEventListener('load', function(){
-        navigator.serviceWorker.register('sw.js')
-          .then(function(reg){ console.log('SW registrado:', reg.scope); })
-          .catch(function(err){ console.log('SW erro:', err); });
-      });
-    }
-    // Prompt de instalação
-    var deferredPrompt;
-    window.addEventListener('beforeinstallprompt', function(e){
-      e.preventDefault();
-      deferredPrompt = e;
-      var btn = document.getElementById('btn-instalar');
-      if(btn) btn.style.display = 'flex';
-    });
-    window.addEventListener('appinstalled', function(){
-      var btn = document.getElementById('btn-instalar');
-      if(btn) btn.style.display = 'none';
-      deferredPrompt = null;
-    });
-    function instalarApp(){
-      if(deferredPrompt){
-        deferredPrompt.prompt();
-        deferredPrompt.userChoice.then(function(r){
-          deferredPrompt = null;
-        });
-      }
-    }
-  </script>
-
 </body>
 </html>

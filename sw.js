@@ -1,25 +1,27 @@
-// RodanteCheck Service Worker v4
-// Corrigido: caminhos para GitHub Pages + cache completo offline
+// RodanteCheck Service Worker v3
+// Permite funcionar offline e instalar como app
 
-var CACHE = 'rodantecheck-v5';
-var BASE = '/rondantecheck';
+var CACHE = 'rodantecheck-v3';
 var ARQUIVOS = [
-  BASE + '/',
-  BASE + '/index.html',
-  BASE + '/manifest.json',
-  BASE + '/icon-192.png',
-  BASE + '/icon-512.png',
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon-192.png',
+  '/icon-512.png',
+  'https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
 ];
 
-// Instalar — cachear todos os arquivos essenciais
+// Instalar — cachear arquivos essenciais
 self.addEventListener('install', function(e){
   e.waitUntil(
     caches.open(CACHE).then(function(cache){
-      return cache.addAll(ARQUIVOS).catch(function(err){
+      return cache.addAll([
+        '/',
+        '/index.html',
+        '/manifest.json'
+      ]).catch(function(err){
         console.log('Cache parcial:', err);
-        // Cachear pelo menos o principal
-        return cache.addAll([BASE + '/', BASE + '/index.html']);
       });
     })
   );
@@ -39,18 +41,19 @@ self.addEventListener('activate', function(e){
   self.clients.claim();
 });
 
-// Fetch — cache-first para arquivos locais, network-first para Supabase
+// Fetch — servir do cache quando offline
 self.addEventListener('fetch', function(e){
-  // Supabase sempre vai para rede (dados em tempo real)
+  // Não interceptar requisições do Supabase
   if(e.request.url.includes('supabase.co')){
     return;
   }
-
+  
   e.respondWith(
     caches.match(e.request).then(function(cached){
       if(cached) return cached;
-
+      
       return fetch(e.request).then(function(response){
+        // Cachear apenas respostas válidas e do mesmo domínio
         if(response && response.status === 200 && response.type === 'basic'){
           var clone = response.clone();
           caches.open(CACHE).then(function(cache){
@@ -61,7 +64,7 @@ self.addEventListener('fetch', function(e){
       }).catch(function(){
         // Offline — retornar index.html para navegação
         if(e.request.destination === 'document'){
-          return caches.match(BASE + '/index.html') || caches.match(BASE + '/');
+          return caches.match('/index.html');
         }
       });
     })
